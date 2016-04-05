@@ -3,8 +3,8 @@
 
 namespace tinySTL {
 
-struct _true_type;
-struct _false_type;
+struct _true_type {};
+struct _false_type {};
 
 template<class T>
     struct _type_traits

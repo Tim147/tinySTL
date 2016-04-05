@@ -1,16 +1,17 @@
 #ifndef ST_VECTOR_H
 #define ST_VECTOR_H
+#include "allocator.h"
+#include "uninitialled.h"
 
-
-namespace ST_stl {
-    template <class T, Alloc = alloc>
+namespace tinySTL {
+    template <class T, Alloc = tinySTL::my_malloc_alloc>
     class vector {
     private:
         T* _start;
         T* _end;
         T* _capacity;
 
-        alloc<T> data_allocator;
+        Alloc<T> data_allocator;
 
     public:
         typedef 	 T 				value_type;
@@ -34,8 +35,15 @@ namespace ST_stl {
 
         iterator allocate_and_fill(size_type n, const T& x) {
             iterator result = data_allocator::allocate(n);
-
-
+            _uninitialled_fill_n(result, n, x);
+            return result;
+        
+        }
+        
+        void fill_and_initialize(size_type n, const T& x) {
+            iterator result = allocate_and_fill(n, x);
+            _end = _end + n;
+            _capacity = _capacity + n;
         }
 
 

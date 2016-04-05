@@ -1,5 +1,6 @@
 #ifndef ITERATOR_H
 #define ITERATOR_H
+#include <stddef.h>
 namespace tinySTL {
     struct input_iterator_tag {};
     struct output_iterator_tag {};
@@ -16,7 +17,7 @@ namespace tinySTL {
         typedef T&                  reference;
     };
 
-    template <>
+    template <class T, class Distance>
     struct output_iterator {
         typedef output_iterator_tag iterator_category;
         typedef void                value_type;
@@ -101,7 +102,7 @@ namespace tinySTL {
 
     template <class Iterator>
     inline typename iterator_traits<Iterator>::value_type*
-        value_type(const Iterator&) {
+        value_type(const Iterator&) const {
         return static_cast<typename iterator_traits<Iterator>::value_type*>(0);
     }
 

@@ -25,13 +25,13 @@ namespace tinySTL {
     inline void _destroy(ForwardIterator start, ForwardIterator end, _true_type) { }
 
     template <class ForwardIterator>
-    inline void _destryo(ForwardIterator start, ForwardIterator end, _false_type) {
-        for(; first != end; ++first)
-            destroy(&*first);
+    inline void _destroy(ForwardIterator start, ForwardIterator end, _false_type) {
+        for(; start != end; ++start)
+            destroy(&*start);
     }
 
     template <class ForwardIterator>
-    inline destroy(ForwardIterator start, ForwardIterator end) {
+    inline void destroy(ForwardIterator start, ForwardIterator end) {
         typedef typename _type_traits<value_type(start)>::is_POD_type _is_POD_type;
         _destroy(start, end, _is_POD_type);
     }

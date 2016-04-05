@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <iostream>
 
-namespace TinySTL {
+namespace tinySTL {
     class my_malloc_alloc {
     private:
         static void *oom_alloc(size_t nbytes);
@@ -88,7 +88,6 @@ namespace TinySTL {
 }
 
 
-#endif
 
 
 
