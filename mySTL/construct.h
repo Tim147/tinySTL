@@ -30,10 +30,12 @@ namespace tinySTL {
             destroy(&*start);
     }
 
-    template <class ForwardIterator>
-    inline void destroy(ForwardIterator start, ForwardIterator end) {
-        typedef typename _type_traits<value_type(start)>::is_POD_type _is_POD_type;
-        _destroy(start, end, _is_POD_type);
+    template <class ForwardIterator, class T>
+    inline void destroy(ForwardIterator start, ForwardIterator end, const T&) {
+        // typedef typename value_type(start) T;
+        //  typedef static_cast<typename iterator<start>::value_type :>
+        typedef typename _type_traits<T>::is_POD_type _is_POD_type;
+        _destroy(start, end, _is_POD_type());
     }
 }
 

@@ -102,7 +102,7 @@ namespace tinySTL {
 
     template <class Iterator>
     inline typename iterator_traits<Iterator>::value_type*
-        value_type(const Iterator&) const {
+        value_type(const Iterator&)  {
         return static_cast<typename iterator_traits<Iterator>::value_type*>(0);
     }
 
