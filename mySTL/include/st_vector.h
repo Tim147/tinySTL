@@ -1,7 +1,7 @@
 #ifndef ST_VECTOR_H
 #define ST_VECTOR_H
-#include "allocator.h"
-#include "uninitialled.h"
+#include "st_allocator.h"
+#include "st_uninitialled.h"
 
 namespace tinySTL {
     template <class T, class Alloc = SimpleAlloc>
@@ -26,14 +26,8 @@ class vector {
         typedef 	 T* 			iterator;
         typedef 	 const T*		const_iterator;
 
-        
     public:
-        size_type size() {return (_end - _start);}
-        iterator begin() {return _start; }
-        iterator end() { return _end; }
-        vector() : _start(0), _end(0), _capacity(0) {}
-
-        void fill_and_initialize(size_type n, const T& x) {
+        void fill_and_initialize(size_type n, const T& x){
             iterator result = allocate_and_fill(n, x);
             _start = result;
             _end = result + n;
@@ -43,8 +37,14 @@ class vector {
             iterator result = static_cast<iterator>(data_allocator.allocate(n));
             _uninitialed_fill_n(result, n, x);
             return result;
-        
         }
+
+    public:
+        size_type size() {return (_end - _start);}
+        iterator begin() {return _start; }
+        iterator end() { return _end; }
+        vector() : _start(0), _end(0), _capacity(0) {}
+
         vector(size_type n, const value_type& x) { fill_and_initialize(n, x);}
 
 

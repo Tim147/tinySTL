@@ -5,3 +5,11 @@ CONFIG -= qt
 
 SOURCES += main.cpp
 
+HEADERS += \
+    st_vector.h \
+    allocator.h \
+    construct.h \
+    typetrait.h \
+    iterator.h \
+    uninitialled.h
+

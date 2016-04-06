@@ -1,7 +1,7 @@
 #ifndef ST_ALGORITHM_H
 #define ST_ALGORITHM_H
 
-#include "iterator.h"
+#include "st_iterator.h"
 
 namespace tinySTL {
 
