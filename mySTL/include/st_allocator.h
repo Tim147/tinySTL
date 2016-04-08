@@ -1,33 +1,46 @@
 #ifndef ST_ALLOCATOR_H
 #define ST_ALLOCATOR_H
-
+#include <stddef.h>
 #include <stdlib.h>
 #include <iostream>
 
 namespace tinySTL {
+    template <class T>
     class SimpleAlloc {
+    public:
+        typedef T           value_type;
+        typedef T*          pointer;
+        typedef const T*    const_pointer;
+        typedef T&          reference;
+        typedef const T&    const_reference;
+        typedef size_t      size_type;
+        typedef ptrdiff_t   difference_type;
+            
+
     private:
-        static void *oom_alloc(size_t nbytes);
-        static void *oom_realloc(void *begin, size_t nbytes);
+        static pointer  oom_alloc(size_type nbytes);
+        static pointer  oom_realloc(pointer begin, size_type nbytes);
         static void (*my_oom_malloc_handler)();
         static void set_my_malloc_handler(void (*f)());
     public:
-        void *allocate(size_t nbytes);
-        void *reallocate(void *begin, size_t nbytes);
-        void *deallocate(void *begin);
+        pointer allocate(size_type nbytes);
+        pointer reallocate(pointer begin, size_type nbytes);
+        void deallocate(pointer begin);
     };
 
+    template <class T>
+    void (*SimpleAlloc<T>::my_oom_malloc_handler)() = 0; //set by user
 
-    void (*SimpleAlloc::my_oom_malloc_handler)() = 0; //set by user
-
-    void SimpleAlloc::set_my_malloc_handler(void (*f)()) {
+    template<class T>
+    void SimpleAlloc<T>::set_my_malloc_handler(void (*f)()) {
         void (*handler)() = my_oom_malloc_handler;
         handler = f;
     }
-
-    void* SimpleAlloc::oom_alloc(size_t nbytes) {
+    
+    template <class T>
+    typename SimpleAlloc<T>::pointer SimpleAlloc<T>::oom_alloc(size_type nbytes) {
         void (*handler)();
-        void *result;
+        pointer result;
         while(true) {
             handler = my_oom_malloc_handler;
             if(!handler) {
@@ -36,16 +49,17 @@ namespace tinySTL {
             }
             (*handler)();
 
-            result = malloc(nbytes);
+            result = static_cast<pointer>(malloc(nbytes*sizeof(T)));
             if(result) {
                 return result;
             }
         }
     }
 
-    void* SimpleAlloc::oom_realloc(void* begin, size_t nbytes) {
+    template <class T>
+    typename SimpleAlloc<T>::pointer SimpleAlloc<T>::oom_realloc(pointer begin, size_type nbytes) {
         void (*handler)();
-        void *result;
+        pointer result;
 
         while(true) {
             handler = my_oom_malloc_handler;
@@ -64,16 +78,18 @@ namespace tinySTL {
         }
     }
 
-    void* SimpleAlloc::allocate(size_t nbytes) {
-        void* result = malloc(nbytes);
+    template <class T>
+    typename SimpleAlloc<T>::pointer SimpleAlloc<T>::allocate(size_type nbytes) {
+        pointer result = static_cast<pointer>(malloc(nbytes*sizeof(T)));
         if(!result)
             oom_alloc(nbytes);
 
         return result;
     }
 
-    void* SimpleAlloc::reallocate(void* begin, size_t nbytes) {
-        void* result = realloc(begin, nbytes);
+    template <class T>
+    typename SimpleAlloc<T>::pointer SimpleAlloc<T>::reallocate(pointer begin, size_type nbytes) {
+        pointer result = realloc(begin, nbytes);
 
         if(!result)
             oom_realloc(begin, nbytes);
@@ -81,7 +97,8 @@ namespace tinySTL {
         return result;
     }
 
-    void* SimpleAlloc::deallocate(void* begin) {
+    template <class T>
+    void SimpleAlloc<T>::deallocate(pointer begin) {
         free(begin);
     }
 

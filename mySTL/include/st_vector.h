@@ -4,7 +4,7 @@
 #include "st_uninitialled.h"
 
 namespace tinySTL {
-    template <class T, class Alloc = SimpleAlloc>
+    template <class T, class Alloc = SimpleAlloc<T> >
 class vector {
     private:
         T* _start;

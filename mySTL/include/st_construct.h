@@ -31,7 +31,7 @@ namespace tinySTL {
     }
 
     template <class ForwardIterator, class T>
-    inline void destroy(ForwardIterator start, ForwardIterator end, T*) {
+    inline void _destroy(ForwardIterator start, ForwardIterator end, T*) {
         typedef typename _type_traits<T>::is_POD_type _is_POD_type;
         _destroy_aux(start, end, _is_POD_type());
     }
