@@ -18,7 +18,7 @@ namespace tinySTL {
         for(; n > 0; --n, ++cur) {
             construct(&*cur, x);
         }
-        return cur;
+        return first;
     }
 
     template <class ForwardIterator, class Size, class T>

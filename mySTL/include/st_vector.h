@@ -1,7 +1,8 @@
-#ifndef ST_VECTOR_H
+#ifndef ST_tECTOR_H
 #define ST_VECTOR_H
 #include "st_allocator.h"
 #include "st_uninitialled.h"
+#include "st_algorithm.h"
 
 namespace tinySTL {
     template <class T, class Alloc = SimpleAlloc<T> >
@@ -31,27 +32,99 @@ class vector {
             iterator result = allocate_and_fill(n, x);
             _start = result;
             _end = result + n;
-            _capacity = _capacity + n;
+            _capacity = _start + n;
         }
         iterator allocate_and_fill(size_type n, const T& x) {
             iterator result = static_cast<iterator>(data_allocator.allocate(n));
             _uninitialed_fill_n(result, n, x);
             return result;
         }
+
         template< class InputIterator>
-        InputIterator reallocate_and_copy(InputIterator begin, InputIterator end, size_type n) {
+        InputIterator reallocate_and_copy(InputIterator begin, InputIterator end) {
+            size_type n = end-begin;
             iterator result = data_allocator.reallocate(_start, n);
-            _start = result;
-            _end = tinySTL::uninitialed_copy(begin, end, result);
-            _capacity = _end;
+            uninitialed_copy(begin, end, result);
             return result;
+        }
+
+        template <class InputIterator>
+        InputIterator allocate_and_copy(InputIterator begin, InputIterator end) {
+            size_type n = end - begin;
+            iterator result = data_allocator.allocate(n);
+            uninitialed_copy(begin, end, result);
+            return result;
+        }
+
+        template <class InputIterator>
+        iterator insert_aux(const_iterator position, InputIterator first, InputIterator last) {
+            size_type n = last - first;
+            iterator pos = const_cast<iterator>(position);
+            if(_end + n < _capacity) {
+               for(size_type i = 0; i < n; ++i)
+                   construct(_end+i);
+               iterator result = backward_copy<iterator>(pos, _end, _end+n-1);
+               for(size_type i = 0; i < n; ++i, ++first)
+                   *(pos+i) = *first;
+               _end += n;
+               return (pos+n-1);
+            } else {
+                size_type oldsize = _capacity - _start;
+                size_type newsize = oldsize==0?n:2*oldsize+n;
+                iterator result = data_allocator.allocate(newsize);
+                iterator newpos = uninitialed_copy(_start, pos, result);
+                iterator respos = newpos;
+                newpos = uninitialed_copy(first, last, newpos);
+                newpos = uninitialed_copy(pos, _end, newpos);
+                
+                destroy(_start, _end);
+                data_allocator.deallocate(_start);
+
+                _start = result;
+                _end = newpos;
+                _capacity = _start + newsize;
+                return respos;
+            }
+        }
+        
+        iterator insert_aux(const_iterator position, const value_type& val) {
+            iterator pos = const_cast<iterator>(position);
+            if(_end < _capacity) {
+                construct(_end, val);
+                iterator result = backward_copy<iterator>(pos, _end, _end);
+                //uninitialed_copy(position, _end, position+1);
+                *pos = val;
+                _end++;
+                return pos;
+            }else {
+                size_type oldsize = _capacity - _start;
+                size_type newsize = oldsize==0?1:2*oldsize;
+
+                //iterator result = allocate_and_fill(newsize, val);
+                iterator result = data_allocator.allocate(newsize);
+                iterator newpos = uninitialed_copy(_start, pos, result);
+                construct(newpos, val);
+                iterator respos = newpos;
+                ++newpos;
+                newpos = uninitialed_copy(pos, _end, newpos);
+                
+                destroy(_start, _end);
+                data_allocator.deallocate(_start);
+
+                _start = result;
+                _end = newpos;
+                _capacity = _start + newsize;
+                return respos;
+
+            }
+            
         }
 
 
 
     public:
         bool empty() {return _end == _start;}
-        size_type size() {return (_end - _start);}
+        size_type size() const {return (_end - _start);}
 
         iterator begin() {return _start; }
         const_iterator begin() const {return _start;}
@@ -73,6 +146,19 @@ class vector {
 
 
         vector(size_type n, const value_type& x) { fill_and_initialize(n, x);}
+        
+        vector(vector<T>& x) {
+            _start = allocate_and_copy<iterator>(x.begin(), x.end());
+            _end = _start + x.size();
+            _capacity = _start + x.size();
+        }
+
+        vector(const vector<value_type>& x) {
+            _start = const_cast<iterator>(allocate_and_copy<const_iterator>(x.begin(), x.end()));
+            _end = _start + x.size();
+            _capacity = _start + x.size();
+        }
+
         ~vector() {
             if(_capacity != 0) {
                 destroy(_start, _end); 
@@ -101,37 +187,84 @@ class vector {
 
 
         vector& operator=(const vector<T>& x) {
-            int newsize = static_cast<int>(x.size());
-            if(size() >= x.size()) {
-                for(int i=0; i<size(); ++i) {
-                    if(i<x.size())
+            //const int size =x.size();
+            int newsize = x.size();
+            if(size() >= newsize) {
+                for(int i=0; i < newsize; ++i) {
+                    if(i < newsize)
                         *(begin()+i) = *(x.begin()+i);
                     else *(begin()+i) = value_type();
                 }
-                _end = begin() + x.size();
+                _end = begin() + newsize;
 
-            }else if(capacity() >= x.size() ) {
-                for(int i=0; i<x.size();++i)
-                    *(begin()+i) = *(x.begin()+i);
-                _end = begin() + x.size();
+            }else if(capacity() >= newsize ) {
+                for(int i=0; i< newsize;++i) {
+                    if(i <= capacity())
+                        *(begin()+i) = *(x.begin()+i);
+                    else {
+                        construct(begin()+i, *(x.begin()+i));
+                    }
+                }
+                _end = begin() + newsize;
             } else {
-            _capacity = reallocate_and_copy(x.begin(), x.end(), newsize);
+                _start = const_cast<iterator>(reallocate_and_copy<const_iterator>(x.begin(), x.end()));
+                _end = _start + newsize;
+                _capacity = _end;
             }
 
             return *this;
         }
 
         vector& operator=(vector<T>& x) { //move
-            _capacity = reallocate_and_copy(x.begin(), x.end(), x.size());
+            _start = reallocate_and_copy(x.begin(), x.end());
+            _end = _start + x.size();
+            _capacity = _end;
             destroy(x.begin(), x.end());
             //x.get_allocator().deallocate(x.begin());
             return *this;
         }
+        
+        //inserting new elements before the element at the specified position,
+        iterator insert(const_iterator position, const value_type& val) {
+            return insert_aux(position, val);
+        }
+        
+        iterator insert(const_iterator position, size_type n, const value_type& val) {
+           iterator pos;
+           for(size_type i=0; i<n; ++i) 
+               pos = insert_aux(position+i,val);
+           return pos;
+        }
+
+        template <class InputIterator>
+        iterator insert(const_iterator position, InputIterator first, InputIterator last) {
+            return insert_aux<InputIterator>(position, first, last); 
+        }
+
+        iterator insert(const_iterator position, value_type& val) {
+            return insert_aux(position, val); 
+        }
+        
+        //Add element at the end
+        void push_back(const value_type& val) {
+            if(_end != _capacity) {
+                construct(_end, val);
+                ++_end;
+            }
+            else 
+                insert(end(), val);
+        }
+
+
+        
+
+
+
 
 
 
 
     };
 }
-#endif // ST_VECTOR_H
+#endif // ST_tECTOR_H
 

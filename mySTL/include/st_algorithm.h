@@ -27,6 +27,16 @@ namespace tinySTL {
         return start;
     }
 
+    template <class BiDirectionIterator>
+    BiDirectionIterator 
+    backward_copy(BiDirectionIterator first, BiDirectionIterator last, BiDirectionIterator result) {
+        --last;
+        for(;last != first - 1; --last, --result)
+            *result = *last;
+        return result;
+    }
+
+
 
 
 }
