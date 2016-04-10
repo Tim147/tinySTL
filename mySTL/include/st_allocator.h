@@ -71,7 +71,7 @@ namespace tinySTL {
 
             (*handler)();
 
-            result = realloc(begin, nbytes);
+            result = static_cast<pointer>(realloc(begin, nbytes*sizeof(T)));
 
             if(result)
                 return result;
@@ -82,17 +82,17 @@ namespace tinySTL {
     typename SimpleAlloc<T>::pointer SimpleAlloc<T>::allocate(size_type nbytes) {
         pointer result = static_cast<pointer>(malloc(nbytes*sizeof(T)));
         if(!result)
-            oom_alloc(nbytes);
+            oom_alloc(nbytes*sizeof(T));
 
         return result;
     }
 
     template <class T>
     typename SimpleAlloc<T>::pointer SimpleAlloc<T>::reallocate(pointer begin, size_type nbytes) {
-        pointer result = realloc(begin, nbytes);
+        pointer result = static_cast<pointer>(realloc(begin, nbytes*sizeof(T)));
 
         if(!result)
-            oom_realloc(begin, nbytes);
+            oom_realloc(begin, nbytes*sizeof(T));
 
         return result;
     }

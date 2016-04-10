@@ -14,8 +14,8 @@ namespace tinySTL {
 
     template <class ForwardIterator, class InputIterator>
     ForwardIterator copy(InputIterator start, InputIterator end, ForwardIterator result){
-        for(;start != end; ++start, ++result) {
-            *result = *start;
+        for(int i=0;start + i != end; ++i, ++result) {
+            *result = *(start+i);
         }
         return result;
     }

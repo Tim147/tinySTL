@@ -38,6 +38,16 @@ class vector {
             _uninitialed_fill_n(result, n, x);
             return result;
         }
+        template< class InputIterator>
+        InputIterator reallocate_and_copy(InputIterator begin, InputIterator end, size_type n) {
+            iterator result = data_allocator.reallocate(_start, n);
+            _start = result;
+            _end = tinySTL::uninitialed_copy(begin, end, result);
+            _capacity = _end;
+            return result;
+        }
+
+
 
     public:
         bool empty() {return _end == _start;}
@@ -59,7 +69,8 @@ class vector {
         const_iterator rend() const { return begin()-1;}
         const_iterator crend() const {return cbegin()-1;}
 
-        vector() : _start(0), _end(0), _capacity(0) {}
+       vector() : _start(0), _end(0), _capacity(0) {}
+
 
         vector(size_type n, const value_type& x) { fill_and_initialize(n, x);}
         ~vector() {
@@ -85,6 +96,40 @@ class vector {
     
         pointer data() { return begin();}
         const_pointer data() const {return cbegin(); }
+
+        Alloc get_allocator() { return data_allocator;}
+
+
+        vector& operator=(const vector<T>& x) {
+            int newsize = static_cast<int>(x.size());
+            if(size() >= x.size()) {
+                for(int i=0; i<size(); ++i) {
+                    if(i<x.size())
+                        *(begin()+i) = *(x.begin()+i);
+                    else *(begin()+i) = value_type();
+                }
+                _end = begin() + x.size();
+
+            }else if(capacity() >= x.size() ) {
+                for(int i=0; i<x.size();++i)
+                    *(begin()+i) = *(x.begin()+i);
+                _end = begin() + x.size();
+            } else {
+            _capacity = reallocate_and_copy(x.begin(), x.end(), newsize);
+            }
+
+            return *this;
+        }
+
+        vector& operator=(vector<T>& x) { //move
+            _capacity = reallocate_and_copy(x.begin(), x.end(), x.size());
+            destroy(x.begin(), x.end());
+            //x.get_allocator().deallocate(x.begin());
+            return *this;
+        }
+
+
+
 
     };
 }
