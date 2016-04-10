@@ -3,6 +3,7 @@
 #include "st_allocator.h"
 #include "st_uninitialled.h"
 #include "st_algorithm.h"
+#include <assert.h>
 
 namespace tinySTL {
     template <class T, class Alloc = SimpleAlloc<T> >
@@ -70,7 +71,7 @@ class vector {
                return (pos+n-1);
             } else {
                 size_type oldsize = _capacity - _start;
-                size_type newsize = oldsize==0?n:2*oldsize+n;
+                size_type newsize = oldsize + max<size_type>(oldsize, n);
                 iterator result = data_allocator.allocate(newsize);
                 iterator newpos = uninitialed_copy(_start, pos, result);
                 iterator respos = newpos;
@@ -115,13 +116,8 @@ class vector {
                 _end = newpos;
                 _capacity = _start + newsize;
                 return respos;
-
-            }
-            
+            }         
         }
-
-
-
     public:
         bool empty() {return _end == _start;}
         size_type size() const {return (_end - _start);}
@@ -230,10 +226,8 @@ class vector {
         }
         
         iterator insert(const_iterator position, size_type n, const value_type& val) {
-           iterator pos;
-           for(size_type i=0; i<n; ++i) 
-               pos = insert_aux(position+i,val);
-           return pos;
+           vector<value_type> tmp(n, val);
+           return insert_aux<iterator>(position, tmp.begin(), tmp.end());
         }
 
         template <class InputIterator>
@@ -254,16 +248,34 @@ class vector {
             else 
                 insert(end(), val);
         }
-
-
         
+        // erase element at the end
+        void pop_back() {
+            assert(_end != _start);
+            --_end;
+            destroy(_end);
+        }
 
+        iterator erase(iterator position) {
+            if(position+1 != _end)
+                copy(position+1, end(), position);
+            --_end;
+            destroy(_end);
+            return position;
+        }
 
+        iterator erase(iterator first, iterator last) {
+            size_type n = last - first;
+            if(last != end() )
+                copy(last, _end, first);
+            destroy(_end-n, _end);
+            _end = _end - n;
+            return first;
+        }
 
-
-
-
-
+        void clear(){
+            erase(_start, _end);
+        }
     };
 }
 #endif // ST_tECTOR_H
