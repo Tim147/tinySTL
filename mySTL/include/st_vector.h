@@ -276,6 +276,29 @@ class vector {
         void clear(){
             erase(_start, _end);
         }
+
+        //Exchanges the content of the container by the content of x
+        void swap(vector<value_type>& x) {
+            tinySTL::swap<iterator>(_start, x._start);
+            tinySTL::swap<iterator>(_end, x._end);
+            tinySTL::swap<iterator>(_capacity, x._capacity);
+        }
+
+        void reserve (size_type n) {}
+
+        template <class InputIterator>
+        void assign (InputIterator first, InputIterator last) {}
+
+        void assign (size_type n, const value_type& val) {}
+
+        void resize (size_type n) {}
+        void resize (size_type n, const value_type& val) {}
+
+        void shrink_to_fit() {}
+
+
+
+
     };
 }
 #endif // ST_tECTOR_H

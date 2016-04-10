@@ -7,15 +7,6 @@
 
 namespace tinySTL {
     
-    template <class T>
-    const T max(const T& a, const T& b) {
-        return (a > b ? a : b);
-    }
-    template <class T>
-    const T min(const T& a, const T& b) {
-        return (a < b ? a : b);
-    }
-
     template <class T1, class T2>
     inline void construct(T1* ptr, const T2& value) {
         new (ptr) T1(value);
