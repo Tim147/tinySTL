@@ -284,17 +284,66 @@ class vector {
             tinySTL::swap<iterator>(_capacity, x._capacity);
         }
 
-        void reserve (size_type n) {}
+        //vector capacity be at least enough to contain n elements
+        void reserve (size_type n) {
+            if(capacity() < n) {
+               size_type oldsize = _end - _start;
+            
+               iterator result = data_allocator.allocate(n);
+               iterator newstart = result;
+               result = uninitialed_copy(_start, _end, result);
+               
+               destroy(_start, _end);
+               data_allocator.deallocate(_start);
+
+               _start = newstart;
+               _end = result;
+               _capacity = _start + n; 
+            }
+        }
 
         template <class InputIterator>
         void assign (InputIterator first, InputIterator last) {}
 
         void assign (size_type n, const value_type& val) {}
 
-        void resize (size_type n) {}
-        void resize (size_type n, const value_type& val) {}
+        void resize (size_type n) {
+            resize(n, value_type());
+        }
 
-        void shrink_to_fit() {}
+        void resize (size_type n, const value_type& val) {
+            if(size() < n) {
+                if(capacity() >= n) { 
+                    _end = _uninitialed_fill_n(_end, n-size(), val);
+                }
+                else {
+                    iterator result = data_allocator.allocate(n);
+                    iterator newstart = result;
+
+                    result = uninitialed_copy(_start, _end, result);
+                    result = _uninitialed_fill_n(result, n-size(), val);
+
+                    destroy(_start, _end);
+                    data_allocator.deallocate(_start);
+
+                    _start = newstart;
+                    _end = result;
+                    _capacity = _start + n;
+                }
+            }else if(size() > n) {
+                destroy(_start+n, _end);
+                _end = _start + n;
+            }
+        }
+
+        // reduce its capacity to fit its size
+        void shrink_to_fit() {
+            reserve(size());
+        }
+
+        size_type max_size() const {}
+
+
 
 
 
