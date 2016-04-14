@@ -2,6 +2,8 @@
 #define ST_LIST_H
 
 #include "st_iterator.h"
+#include "st_allocator.h"
+#include "st_algorithm.h"
 
 namespace tinySTL {
 
@@ -59,6 +61,33 @@ template <class T, class Ref, class Ptr>
                 --*this;
                 return tmp;
             }
+};
+
+template <class T, class Alloc = SimpleAlloc<T> >
+class list {
+protect:
+    typedef _list_node<T>   list_node;
+public:
+    typedef list_node*      link_type;
+    typedef T               value_type;
+    typedef list_node*      iterator;
+    typedef const list_node*    const_iterator;
+    typedef size_t              size_type;
+    typedef T&                 reference;
+    typedef const T&           const_reference;
+
+protect:
+    link_type   node;
+
+public:
+
+    iterator begin() { return (link_type) (*node).next; }
+    iterator end() { return node; }
+    size_type size() const { return distance(begin(), end()); }
+
+
+
+
 };
 
 

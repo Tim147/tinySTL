@@ -41,6 +41,30 @@ namespace tinySTL {
             return true;
         }
 
+    //*******************iterartor distance**************************************
+    template <class InputIterator>
+        inline iterator_traits<InputIterator>::difference_type
+        _distance(InputIterator first, InputIterator last, input_iterator_tag) {
+            iterator_traits<InputIterator>::difference_type res = 0 ;
+            while (first != last) {
+                ++first; ++res;
+            }
+            return res;
+        }
+    template <class InputIterator>
+        inline iterator_traits<InputIterator>::difference_type
+        _distance (InputIterator first, InputIterator last, random_access_iterator_tag ) {
+            return last - first;
+        }
+
+    
+    template <class InputIterator>
+        distance (InputIterator first, InputIterator last) {
+            typedef iterator_traits<InputIterator>::iterator_category   category;
+            return _distance(first, last, category());
+        }
+
+    // ************* lexicographical compare***************************************
     template <class InputIterator1, class InputIterator2>
         bool lexicographical_compare(InputIterator1 first1, InputIterator1 last1,
                                      InputIterator2 first2, InputIterator2 last2) {
