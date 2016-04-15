@@ -82,7 +82,23 @@ protect:
 public:
 
     iterator begin() { return (link_type) (*node).next; }
+    const_iterator begin() const { return (link_type) (*node).next; }
+    const_iterator cbegin() const { return (link_type) (*node).next; }
+
     iterator end() { return node; }
+    const_iterator end() const { return node; }
+    const_iterator cend() const {return node; }
+
+    reference back() { return &(node->prev->data); }
+    const_reference back() const { return &(node->prev->data); }
+
+    reference front() { return &(node->next->data); }
+    const_reference front() const { return &(node->next->data); }
+
+    bool empty() const { node == node->next; }
+
+
+
     size_type size() const { return distance(begin(), end()); }
 
 
