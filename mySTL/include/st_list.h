@@ -4,11 +4,12 @@
 #include "st_iterator.h"
 #include "st_allocator.h"
 #include "st_algorithm.h"
+#include "st_construct.h"
 
 namespace tinySTL {
 
 template <class T>
-    struct list_node {
+    struct _list_node {
         typedef void* void_ptr;
         void_ptr   next;
         void_ptr   prev;
@@ -25,7 +26,7 @@ template <class T, class Ref, class Ptr>
             typedef T   value_type;
             typedef Ptr  pointer;
             typedef Ref  reference;
-            typedef list_node<T>*   link_type;
+            typedef _list_node<T>*   link_type;
             typedef size_t  size_type;
             typedef ptrdiff_t   difference_type;
 
@@ -63,25 +64,63 @@ template <class T, class Ref, class Ptr>
             }
 };
 
-template <class T, class Alloc = SimpleAlloc<T> >
+template <class T, class Alloc = SimpleAlloc<_list_node<T> > >
 class list {
-protect:
+protected:
     typedef _list_node<T>   list_node;
+    
 public:
     typedef list_node*      link_type;
     typedef T               value_type;
-    typedef list_node*      iterator;
-    typedef const list_node*    const_iterator;
+    typedef list_iterator      iterator;
+    typedef const list_iterator*    const_iterator;
     typedef size_t              size_type;
     typedef T&                 reference;
     typedef const T&           const_reference;
 
-protect:
+protected:
     link_type   node;
+
+private:
+    Alloc node_allocator;
+
+private:
+    link_type get_node () { return node_allocator.allocate(1); }
+
+    void put_node(link_type ptr) {
+        node_allocator.deallocate(ptr);
+    }
+
+    link_type create_node(const T& data) {
+        link_type p = get_node();
+        construct(&(p->data), data);
+        return p;
+    }
+     void destroy_node(link_type ptr) {
+        destryo(&ptr->data);
+        put_node(ptr);
+     }
+
+    void empty_initialize() {
+        node = get_node();
+        node->next = node;
+        node->prev = node;
+    }
+
+    iterator insert_aux (const_iterator position, const value_type& val) {
+        iterator cur = const_cast<iterator>(position);
+        iterator prev = (link_type) cur->prev;
+        iterator result = create_node(val);
+        prev->next = result;
+        result->prev = prev;
+        result->next = cur;
+        cur->prev = result;
+        return result;
+    }
 
 public:
 
-    iterator begin() { return (link_type) (*node).next; }
+    iterator begin() { return (iterator) (link_type) (*node).next; }
     const_iterator begin() const { return (link_type) (*node).next; }
     const_iterator cbegin() const { return (link_type) (*node).next; }
 
@@ -100,9 +139,61 @@ public:
 
 
     size_type size() const { return distance(begin(), end()); }
+    //Constructs a list container object, initializing its contents depending on the constructor version used
+    list() { empty_initialize(); }
+    list (iterator first, iterator last) {
+        link_type cur = node;
+        for(; first != last; ++first, ++cur) {
+            link_type result = create_node(first->data);
+            result->next = cur->next;
+            cur->next = result;
+        }
+    }
 
+    list (const list& x) {
+        list(x.begin(), x.end());
+    }
 
+    ~list() {
+        while(node->next != node) {
+            link_type tmp = (link_type) node->next;
+            node->next = tmp->next;
+            put_node(tmp);
+        }
+        put_node(node);
+    }
+    //Assigns new contents to the container, replacing its current contents
+    list& operator= (const list& x) {
+        node = x.node;
+        return *this;
+    }
 
+    //inserting new elements before the element at the specified position
+    iterator insert (const_iterator position, const value_type& val) {
+        return insert_aux (position, val);
+    }
+
+    iterator insert (const_iterator position, size_type n, const value_type& val) {
+       iterator cur = const_cast<iterator>(position);
+       iterator start = cur;
+       for (size_type i = 0; i < n; ++i, ++cur) {
+            insert_aux (cur, val);
+       }
+       return start;
+    }
+    template <class InputIterator>
+    iterator insert (const_iterator position, InputIterator first, InputIterator last) {
+        iterator cur = const_cast<iterator>(position);
+        iterator start = cur;
+        for (; first != last; ++first, ++cur) {
+            insert_aux (cur, first->data);
+        }
+        return start;
+    }
+
+    void push_back (const value_type& val) {
+        insert_aux (node, val);
+    }
 
 };
 

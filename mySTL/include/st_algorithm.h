@@ -43,24 +43,25 @@ namespace tinySTL {
 
     //*******************iterartor distance**************************************
     template <class InputIterator>
-        inline iterator_traits<InputIterator>::difference_type
+        inline typename iterator_traits<InputIterator>::difference_type
         _distance(InputIterator first, InputIterator last, input_iterator_tag) {
-            iterator_traits<InputIterator>::difference_type res = 0 ;
+            typename iterator_traits<InputIterator>::difference_type res = 0 ;
             while (first != last) {
                 ++first; ++res;
             }
             return res;
         }
     template <class InputIterator>
-        inline iterator_traits<InputIterator>::difference_type
+        inline typename iterator_traits<InputIterator>::difference_type
         _distance (InputIterator first, InputIterator last, random_access_iterator_tag ) {
             return last - first;
         }
 
     
     template <class InputIterator>
+        inline typename iterator_traits<InputIterator>::difference_type
         distance (InputIterator first, InputIterator last) {
-            typedef iterator_traits<InputIterator>::iterator_category   category;
+            typedef typename iterator_traits<InputIterator>::iterator_category   category;
             return _distance(first, last, category());
         }
 
