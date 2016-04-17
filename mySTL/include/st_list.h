@@ -72,8 +72,8 @@ protected:
 public:
     typedef list_node*      link_type;
     typedef T               value_type;
-    typedef list_iterator      iterator;
-    typedef const list_iterator*    const_iterator;
+    typedef list_iterator<T,T*,T&>      iterator;
+    typedef const iterator    const_iterator;
     typedef size_t              size_type;
     typedef T&                 reference;
     typedef const T&           const_reference;
@@ -108,19 +108,19 @@ private:
     }
 
     iterator insert_aux (const_iterator position, const value_type& val) {
-        iterator cur = const_cast<iterator>(position);
-        iterator prev = (link_type) cur->prev;
-        iterator result = create_node(val);
+        iterator cur = position;
+        link_type prev = (link_type) cur.node->prev;
+        link_type result = create_node(val);
         prev->next = result;
         result->prev = prev;
-        result->next = cur;
-        cur->prev = result;
+        result->next = cur.node;
+        cur.node->prev = result;
         return result;
     }
 
 public:
 
-    iterator begin() { return (iterator) (link_type) (*node).next; }
+    iterator begin() { return (link_type) (*node).next; }
     const_iterator begin() const { return (link_type) (*node).next; }
     const_iterator cbegin() const { return (link_type) (*node).next; }
 
@@ -144,7 +144,7 @@ public:
     list (iterator first, iterator last) {
         link_type cur = node;
         for(; first != last; ++first, ++cur) {
-            link_type result = create_node(first->data);
+            link_type result = create_node(first.node->data);
             result->next = cur->next;
             cur->next = result;
         }
@@ -174,7 +174,7 @@ public:
     }
 
     iterator insert (const_iterator position, size_type n, const value_type& val) {
-       iterator cur = const_cast<iterator>(position);
+       iterator cur = position;
        iterator start = cur;
        for (size_type i = 0; i < n; ++i, ++cur) {
             insert_aux (cur, val);
@@ -183,7 +183,7 @@ public:
     }
     template <class InputIterator>
     iterator insert (const_iterator position, InputIterator first, InputIterator last) {
-        iterator cur = const_cast<iterator>(position);
+        iterator cur = position;
         iterator start = cur;
         for (; first != last; ++first, ++cur) {
             insert_aux (cur, first->data);
