@@ -20,7 +20,7 @@ template <class T, class Ref, class Ptr>
     class list_iterator {
         public:
             typedef list_iterator<T, T&, T*> iterator;
-            typedef list_iterator<T, Ref, Ptr>  self;
+            typedef list_iterator<T, Ref , Ptr>  self;
 
             typedef bidirectional_iterator_tag  iterator_category;
             typedef T   value_type;
@@ -39,7 +39,7 @@ template <class T, class Ref, class Ptr>
             bool operator==(const self& x) const {return x.node == node; }
             bool operator!=(const self& x) const { return node != x.node; }
 
-            reference operator* () const { return node->data; }
+            reference operator* () const { return (*node).data; }
             pointer operator-> () const {return &(operator*()); }
             self& operator++() {
                 node = static_cast<link_type>(node->next);
@@ -72,7 +72,7 @@ protected:
 public:
     typedef list_node*      link_type;
     typedef T               value_type;
-    typedef list_iterator<T,T*,T&>      iterator;
+    typedef list_iterator<T,T&,T*>      iterator;
     typedef const iterator    const_iterator;
     typedef size_t              size_type;
     typedef T&                 reference;
@@ -97,7 +97,7 @@ private:
         return p;
     }
      void destroy_node(link_type ptr) {
-        destryo(&ptr->data);
+        destroy(&ptr->data);
         put_node(ptr);
      }
 
@@ -134,6 +134,15 @@ public:
     reference front() { return &(node->next->data); }
     const_reference front() const { return &(node->next->data); }
 
+    iterator rbegin() { return  (link_type) (*node).prev; }
+    const_iterator rbegin() const { return (link_type) (*node).prev; }
+    const_iterator crbegin() const { return (link_type) (*node).prev; }
+
+    iterator rend() { return (link_type) node; }
+    const_iterator rend() const { return (link_type) node; }
+    const_iterator crend() const {return (link_type) node; }
+
+
     bool empty() const { node == node->next; }
 
 
@@ -158,7 +167,7 @@ public:
         while(node->next != node) {
             link_type tmp = (link_type) node->next;
             node->next = tmp->next;
-            put_node(tmp);
+            destroy_node(tmp);
         }
         put_node(node);
     }
@@ -193,6 +202,42 @@ public:
 
     void push_back (const value_type& val) {
         insert_aux (node, val);
+    }
+
+    //Assigns new contents to the list container, replacing its current contents, and modifying its size accordingly
+    template <class InputIterator>
+        void assign (InputIterator first, InputIterator last) {
+                
+        }
+    void assign (size_type n, const value_type& val) {
+    
+    }
+    //Removes from the list container either a single element (position) or a range of elements
+    iterator erase (const_iterator position) {
+       if(position != node) {
+         link_type cur = (link_type) position.node->prev; 
+         link_type result = (link_type) position.node->next;
+         cur->next = result;
+         result->prev = cur;
+         destroy_node(position.node);
+         return result;
+       }
+    }
+        
+    iterator erase (const_iterator first, const_iterator last ) {
+        if (last != node) {
+            link_type cur = (link_type) first.node->prev;
+            link_type result = (link_type) last.node->next;
+            cur->next = result;
+            result->prev = cur;
+            link_type ptr = first.node->prev;
+            do {
+                ptr = ptr->next;
+                destroy_node(ptr);
+            } while (ptr != last.node);
+            
+            return result;
+        }
     }
 
 };
