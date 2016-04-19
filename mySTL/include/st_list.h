@@ -199,18 +199,49 @@ public:
         }
         return start;
     }
-
+    //Adds a new element at the end of the list container,
     void push_back (const value_type& val) {
         insert_aux (node, val);
+    }
+    //Inserts a new element at the beginning of the list
+    void push_front (const value_type& val) {
+        insert_aux ((link_type)node->next, val);
+    }
+    //Removes the last element in the list container, effectively reducing the container size by one
+    void pop_back () {
+        if (node->next != node)
+            erase ((link_type)node->prev);
+    }
+    //Removes the first element in the list container, effectively reducing its size by one
+    void pop_front () {
+        if (node->next != node)
+            erase ((link_type)node->next);
     }
 
     //Assigns new contents to the list container, replacing its current contents, and modifying its size accordingly
     template <class InputIterator>
         void assign (InputIterator first, InputIterator last) {
-                
+            size_type size = distance(begin(), end());
+            size_type n = distance(first, last);
+            iterator it = (link_type) node->next;
+            for (size_type i = 0; i < n; ++i, ++first) {
+                if (i < size)
+                    (it++).node->data = first.node->data;
+                else push_back(first.node->data);
+            }
+            if (n < size)
+                erase(it, node);
         }
     void assign (size_type n, const value_type& val) {
-    
+        size_type size = distance(begin(), end());
+        iterator it = begin();
+        for (size_type i = 0; i < n; ++i, ++it) {
+            if (i <size )
+                it.node->data = val;
+            else insert_aux (node, val);
+        }
+        if ( n < size )
+            erase(it, node);
     }
     //Removes from the list container either a single element (position) or a range of elements
     iterator erase (const_iterator position) {
@@ -225,20 +256,25 @@ public:
     }
         
     iterator erase (const_iterator first, const_iterator last ) {
-        if (last != node) {
-            link_type cur = (link_type) first.node->prev;
-            link_type result = (link_type) last.node->next;
+        if (last != (link_type)node->next) {
+            link_type cur = (link_type)first.node->prev;
+            link_type result = (link_type) last.node;
             cur->next = result;
             result->prev = cur;
-            link_type ptr = first.node->prev;
-            do {
-                ptr = ptr->next;
+            link_type ptr = (link_type) first.node;
+            while (ptr != last.node) { 
+                link_type tmp = (link_type)ptr->next;
                 destroy_node(ptr);
-            } while (ptr != last.node);
-            
+                ptr = tmp;
+            }
             return result;
         }
     }
+    //Returns a copy of the allocator object associated with the list container
+    Alloc get_allocator () const { return node_allocator; }
+    //Removes all elements from the list container  
+    void clear () { erase(begin(), end()); }
+
 
 };
 
