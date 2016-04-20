@@ -142,10 +142,7 @@ public:
     const_iterator rend() const { return (link_type) node; }
     const_iterator crend() const {return (link_type) node; }
 
-
     bool empty() const { node == node->next; }
-
-
 
     size_type size() const { return distance(begin(), end()); }
     //Constructs a list container object, initializing its contents depending on the constructor version used
@@ -185,10 +182,10 @@ public:
     iterator insert (const_iterator position, size_type n, const value_type& val) {
        iterator cur = position;
        iterator start = cur;
-       for (size_type i = 0; i < n; ++i, ++cur) {
-            insert_aux (cur, val);
+       for (size_type i = 0; i < n; ++i) {
+            cur = insert_aux (cur, val); //return the position after inserted element
        }
-       return start;
+       return cur;
     }
     template <class InputIterator>
     iterator insert (const_iterator position, InputIterator first, InputIterator last) {
@@ -333,6 +330,66 @@ public:
             }
 
         }
+    //Removes from the container all the elements that compare equal to val
+    void remove (const value_type& val) {
+        link_type cur = (link_type) node->next;
+        while (cur != node) {
+            if (cur->data == val) {
+                link_type _prev = (link_type) cur->prev;
+                link_type _next = (link_type) cur->next; 
+                _prev->next = _next;
+                _next->prev = _prev;
+                destroy_node(cur);
+                cur = _next;
+            }
+            else cur = (link_type)cur->next;
+        }
+    }
+    template <class Predicate>
+        void remove_if (Predicate pred) {
+            link_type cur = (link_type) node->next;
+            while (cur != node) {
+                if (pred(cur->data)) {
+                    link_type _prev = (link_type) cur->prev;
+                    link_type _next = (link_type) cur->next; 
+                    _prev->next = _next;
+                    _next->prev = _prev;
+                    destroy_node(cur);
+                    cur = _next;
+                }
+                else cur = (link_type)cur->next;
+            }
+        }
+    //Resizes the container so that it contains n elements
+    void resize (size_type n, const value_type& val) {
+        iterator cur = begin();
+        size_type i = 0;
+        while (cur != end()) {
+            ++i;
+            if (i > n)
+                cur = erase(cur, end());
+            else ++cur;
+        }
+        if ( i < n )
+            insert (cur, n-i, val);
+    }
+    //Resizes the container so that it contains n elements
+    void resize (size_type n) {
+        resize (n, value_type());
+    }
+    //Reverses the order of the elements in the list container
+    void reverse () {
+       link_type cur = (link_type)node->next;
+       while (cur != node) {
+           link_type _next = (link_type)cur->next;
+           cur->next = cur->prev;
+           cur->prev = _next;
+           cur = _next;
+       }
+       link_type tmp = (link_type) node->next;
+       node->next = node->prev;
+       node->prev = tmp;
+    }
     //Sorts the elements in the list, altering their position within the container
     void sort() {
 
@@ -340,11 +397,7 @@ public:
     template <class Compare>
         void sort (Compare comp) {
         }
-
-
 };
-
-
 
 }
 #endif

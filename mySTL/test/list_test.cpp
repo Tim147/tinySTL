@@ -22,7 +22,7 @@ int main() {
     mylist2.push_back(2);
     mylist2.pop_front();
     mylist2.push_front(4);
-    mylist2.clear();
+    //mylist2.clear();
     //mylist2.erase(mylist2.begin(), mylist2.end());
     for (it = mylist2.begin(); it != mylist2.end(); ++it) 
         std::cout<<*it<<"\t";
