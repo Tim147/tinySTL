@@ -463,6 +463,41 @@ public:
             swap(counter[fill-1]);
         }
 };
-
+    template <class T>
+        inline bool operator== (const list<T>& lhs, const list<T>& rhs) {
+            typename list<T>::iterator first1 = lhs.begin();
+            typename list<T>::iterator first2 = rhs.begin();
+            while (first1 != lhs.end()) {
+                if ( first2 == rhs.end() ) return false;
+                if ( *first1 != *first2 ) return false;
+                ++first1; ++first2;
+            }
+            return (first2 == rhs.end());
+        }
+    template <class T>
+        inline bool operator!= (const list<T>& lhs, const list<T>& rhs) {
+            return !(lhs == rhs);
+        }
+    
+    template <class T>
+        inline bool operator< (const list<T>& lhs, const list<T>& rhs) {
+            return lexicographical_compare (lhs.begin(), lhs.end(), rhs.begin(), rhs.end() );
+        }
+    template <class T>
+        inline bool operator<= (const list<T>& lhs, const list<T>& rhs) {
+            return (lhs < rhs || lhs == rhs);
+        }
+    template <class T> 
+        inline bool operator> (const list<T>& lhs, const list<T>& rhs) {
+            return lexicographical_compare (rhs.begin(), rhs.end(), lhs.begin(), lhs.end() );
+        }
+    template <class T>
+        inline bool operator>= (const list<T>& lhs, const list<T>& rhs) {
+            return (lhs >rhs || lhs == rhs);
+        }
+    template <class T>
+        void swap (list<T>& x, list<T>& y) {
+            x.swap(y);
+        }
 }
 #endif

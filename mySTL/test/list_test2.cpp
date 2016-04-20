@@ -23,6 +23,7 @@ int main () {
     lst1.splice(lst1.begin(), lst1, it, lst1.end());
     lst1.sort();
     //lst2.clear();
+    if (lst2 <= lst1) std::cout<<"no equal"<<std::endl;
     lst2.merge(lst1);
     for (it = lst2.begin(); it != lst2.end(); ++it) 
         std::cout<<*it<<"\t";
