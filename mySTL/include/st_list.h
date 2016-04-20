@@ -274,6 +274,72 @@ public:
     Alloc get_allocator () const { return node_allocator; }
     //Removes all elements from the list container  
     void clear () { erase(begin(), end()); }
+    //Returns the maximum number of elements that the list container can hold.
+    size_type max_size() const { return size_type(-1); }
+    //Merges x into the list by transferring all of its elements at their respective ordered positions into the container 
+    //This function requires that the list containers have their elements already ordered by value (or by comp) before the cal
+    void merge (list& x) {
+        link_type cur = (link_type) node->next;
+        link_type xcur = (link_type) x.node->next;
+        while (cur != node) {
+            if (xcur == x.node) break; 
+            if ( cur->data > xcur->data ) {
+                link_type tmp = (link_type) xcur->next;
+                link_type prevtmp = (link_type)cur->prev;
+                xcur->next = cur;
+                prevtmp->next = xcur;
+                xcur->prev = cur->prev;
+                cur->prev = xcur;
+                xcur = tmp;
+            } else cur = (link_type)cur->next;
+        }
+        if (xcur != x.node) {
+            link_type prevt = (link_type)cur->prev;
+            prevt->next = xcur;
+            xcur->prev = cur->prev;
+            link_type tmp = (link_type)x.node->prev;
+            tmp->next = cur;
+            cur->prev = x.node->prev;
+            x.node->next = x.node;
+            x.node->prev = x.node;
+        }
+
+    }
+    template <class Compare>
+        void merge (list& x, Compare comp) {
+            link_type cur = (link_type) node->next;
+            link_type xcur = (link_type) x.node->next;
+            while (cur != node) {
+                if (xcur == x.node) break; 
+                if ( comp(cur->data, xcur->data) ) {
+                    link_type tmp = (link_type) xcur->next;
+                    link_type prevtmp = (link_type)cur->prev;
+                    xcur->next = cur;
+                    prevtmp->next = xcur;
+                    xcur->prev = cur->prev;
+                    cur->prev = xcur;
+                    xcur = tmp;
+                } else cur = (link_type)cur->next;
+            }
+            if (xcur != x.node) {
+                link_type prevt = (link_type)cur->prev;
+                prevt->next = xcur;
+                xcur->prev = cur->prev;
+                link_type tmp = (link_type)x.node->prev;
+                tmp->next = cur;
+                cur->prev = x.node->prev;
+                x.node->next = x.node;
+                x.node->prev = x.node;
+            }
+
+        }
+    //Sorts the elements in the list, altering their position within the container
+    void sort() {
+
+    }
+    template <class Compare>
+        void sort (Compare comp) {
+        }
 
 
 };
