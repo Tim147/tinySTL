@@ -43,13 +43,13 @@ template <class T, class Ref, class Ptr>
             reference operator* () const { return (*node).data; }
             pointer operator-> () const {return &(operator*()); }
             self& operator++() {
-                node = static_cast<link_type>(node->next);
+                node = (link_type)(node->next);
                 return *this;
             }
 
             self operator++(int) {
                 self tmp = *this;
-                node = static_cast<link_type>(node->next);
+                node = (link_type) (node->next);
                 return tmp;
             }
 
@@ -120,14 +120,15 @@ private:
     }
     //transfer the elements from [first,last) to list before the position
     void transfer (const_iterator position, iterator first, iterator last) {
-        if (position != last) {
-            ((link_type) first.node->prev)->next = last.node;
-            link_type tmp = (link_type)first.node->prev;
-            ((link_type) position.node->prev)->next = first.node;
-            first.node->prev = position.node->prev;
+        if (position != last && first != last) {
+            
             ((link_type) last.node->prev)->next = position.node;
+            ((link_type) first.node->prev)->next = last.node;
+            ((link_type) position.node->prev)->next = first.node;
+            link_type tmp = (link_type)position.node->prev;
             position.node->prev = last.node->prev;
-            last.node->prev = tmp;
+            last.node->prev = first.node->prev;
+            first.node->prev = tmp;
         }
     }
 
@@ -155,7 +156,7 @@ public:
     const_iterator rend() const { return (link_type) node; }
     const_iterator crend() const {return (link_type) node; }
 
-    bool empty() const { node == node->next; }
+    bool empty() const {  return node == node->next; }
 
     size_type size() const { return distance(begin(), end()); }
     //Constructs a list container object, initializing its contents depending on the constructor version used
@@ -174,11 +175,7 @@ public:
     }
 
     ~list() {
-        while(node->next != node) {
-            link_type tmp = (link_type) node->next;
-            node->next = tmp->next;
-            destroy_node(tmp);
-        }
+        clear();
         put_node(node);
     }
     //Assigns new contents to the container, replacing its current contents
@@ -289,59 +286,24 @@ public:
     //Merges x into the list by transferring all of its elements at their respective ordered positions into the container 
     //This function requires that the list containers have their elements already ordered by value (or by comp) before the cal
     void merge (list& x) {
-        link_type cur = (link_type) node->next;
-        link_type xcur = (link_type) x.node->next;
-        while (cur != node) {
-            if (xcur == x.node) break; 
-            if ( cur->data > xcur->data ) {
-                link_type tmp = (link_type) xcur->next;
-                link_type prevtmp = (link_type)cur->prev;
-                xcur->next = cur;
-                prevtmp->next = xcur;
-                xcur->prev = cur->prev;
-                cur->prev = xcur;
-                xcur = tmp;
-            } else cur = (link_type)cur->next;
-        }
-        if (xcur != x.node) {
-            link_type prevt = (link_type)cur->prev;
-            prevt->next = xcur;
-            xcur->prev = cur->prev;
-            link_type tmp = (link_type)x.node->prev;
-            tmp->next = cur;
-            cur->prev = x.node->prev;
-            x.node->next = x.node;
-            x.node->prev = x.node;
-        }
-
+        merge (x, less<T>());
     }
     template <class Compare>
         void merge (list& x, Compare comp) {
-            link_type cur = (link_type) node->next;
-            link_type xcur = (link_type) x.node->next;
-            while (cur != node) {
-                if (xcur == x.node) break; 
-                if ( comp(cur->data, xcur->data) ) {
-                    link_type tmp = (link_type) xcur->next;
-                    link_type prevtmp = (link_type)cur->prev;
-                    xcur->next = cur;
-                    prevtmp->next = xcur;
-                    xcur->prev = cur->prev;
-                    cur->prev = xcur;
-                    xcur = tmp;
-                } else cur = (link_type)cur->next;
-            }
-            if (xcur != x.node) {
-                link_type prevt = (link_type)cur->prev;
-                prevt->next = xcur;
-                xcur->prev = cur->prev;
-                link_type tmp = (link_type)x.node->prev;
-                tmp->next = cur;
-                cur->prev = x.node->prev;
-                x.node->next = x.node;
-                x.node->prev = x.node;
-            }
+            iterator first1 = begin();
+            iterator last1 = end();
+            iterator first2 = x.begin();
+            iterator last2 = x.end();
 
+            while ( first1 != last1 && first2 != last2) {
+                if (!comp(*first1, *first2)) {
+                    iterator _next = first2;
+                    transfer(first1, first2, ++_next);
+                    first2 = _next;
+                } else 
+                    ++first1;
+            }
+            if (first2 != last2) transfer(last1, first2, last2);
         }
     //Removes from the container all the elements that compare equal to val
     void remove (const value_type& val) {
@@ -462,7 +424,7 @@ public:
             transfer (position, x.begin(), x.end());
     }
     // i and position can be the same list
-    void slpice (const_iterator position, list& x, const_iterator i) {
+    void splice (const_iterator position, list& x, const_iterator i) {
         iterator j = i;
         ++j;
         if (i != position && j != position ) 
@@ -475,10 +437,30 @@ public:
     }
     //Sorts the elements in the list, altering their position within the container
     void sort() {
-
+        sort(tinySTL::less<T>());
     }
+    //merge sort
     template <class Compare>
         void sort (Compare comp) {
+            if (node->next == node || ((link_type)node->next)->next == node)
+                return ;
+            list<T> carry;
+            list<T> counter[64];
+            int fill = 0;
+            while (!empty()) {
+                int i = 0;
+                carry.splice(carry.begin(), *this, begin());
+                while (i<fill && !counter[i].empty()) {
+                    counter[i].merge(carry, comp);
+                    carry.swap(counter[i++]);
+                }
+                carry.swap(counter[i]);
+                if (i==fill) ++fill;
+            }
+
+            for (int i=1; i<fill; ++i) 
+                counter[i].merge(counter[i-1], comp);
+            swap(counter[fill-1]);
         }
 };
 

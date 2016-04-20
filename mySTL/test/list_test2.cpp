@@ -21,7 +21,10 @@ int main () {
     ++it;
     ++it;
     lst1.splice(lst1.begin(), lst1, it, lst1.end());
-    for (it = lst1.begin(); it != lst1.end(); ++it) 
+    lst1.sort();
+    //lst2.clear();
+    lst2.merge(lst1);
+    for (it = lst2.begin(); it != lst2.end(); ++it) 
         std::cout<<*it<<"\t";
     std::cout<<std::endl;
     return 1;
