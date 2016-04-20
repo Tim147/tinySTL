@@ -390,6 +390,24 @@ public:
        node->next = node->prev;
        node->prev = tmp;
     }
+    //removes all but the first element from every consecutive group of equal
+    void unique () {
+        link_type cur = (link_type) node->next;
+        link_type _prev = cur;
+        cur = (link_type) cur->next;
+        while (cur != node) {
+            if (cur->data == _prev->data) {
+                link_type _next = (link_type) cur->next;
+                _prev->next = _next;
+                _next->prev = _prev;
+                destroy_node (cur);
+                cur = _next;
+            } else {
+                _prev = cur;
+                cur = (link_type)cur->next;
+            }
+        }
+    }
     //Sorts the elements in the list, altering their position within the container
     void sort() {
 

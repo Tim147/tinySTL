@@ -13,6 +13,7 @@ int main () {
     //lst1.insert(lst1.end(), (size_t)10,9);
     lst1.resize(20,9);
     lst1.reverse();
+    lst1.unique();
     tinySTL::list<int>::iterator it = lst1.begin();
     for (; it != lst1.end(); ++it) 
         std::cout<<*it<<"\t";
