@@ -86,28 +86,30 @@ private:
     Alloc node_allocator;
 
 private:
+    //allocate a single node
     link_type get_node () { return node_allocator.allocate(1); }
-
+    //deallocate a node
     void put_node(link_type ptr) {
         node_allocator.deallocate(ptr);
     }
-
+    //construct a node and return the link_type position
     link_type create_node(const T& data) {
         link_type p = get_node();
         construct(&(p->data), data);
         return p;
     }
+    //destroy a node
      void destroy_node(link_type ptr) {
         destroy(&ptr->data);
         put_node(ptr);
      }
-
+    //initialize a empty list
     void empty_initialize() {
         node = get_node();
         node->next = node;
         node->prev = node;
     }
-
+    //insert base function
     iterator insert_aux (const_iterator position, const value_type& val) {
         iterator cur = position;
         link_type prev = (link_type) cur.node->prev;
@@ -121,7 +123,6 @@ private:
     //transfer the elements from [first,last) to list before the position
     void transfer (const_iterator position, iterator first, iterator last) {
         if (position != last && first != last) {
-            
             ((link_type) last.node->prev)->next = position.node;
             ((link_type) first.node->prev)->next = last.node;
             ((link_type) position.node->prev)->next = first.node;
@@ -133,31 +134,31 @@ private:
     }
 
 public:
-
+    //Return iterator to beginning 
     iterator begin() { return (link_type) (*node).next; }
     const_iterator begin() const { return (link_type) (*node).next; }
     const_iterator cbegin() const { return (link_type) (*node).next; }
-
+    //Return iterator to end
     iterator end() { return node; }
     const_iterator end() const { return node; }
     const_iterator cend() const {return node; }
-
+    //Returns a reference to the last element in the list container
     reference back() { return &(node->prev->data); }
     const_reference back() const { return &(node->prev->data); }
-
+    //Returns a reference to the first element in the list container.
     reference front() { return &(node->next->data); }
     const_reference front() const { return &(node->next->data); }
-
+    //Return reverse iterator to reverse beginning
     iterator rbegin() { return  (link_type) (*node).prev; }
     const_iterator rbegin() const { return (link_type) (*node).prev; }
     const_iterator crbegin() const { return (link_type) (*node).prev; }
-
+    //Return reverse iterator to reverse end
     iterator rend() { return (link_type) node; }
     const_iterator rend() const { return (link_type) node; }
     const_iterator crend() const {return (link_type) node; }
-
+    //Test whether container is empty
     bool empty() const {  return node == node->next; }
-
+    //Returns the number of elements in the list container
     size_type size() const { return distance(begin(), end()); }
     //Constructs a list container object, initializing its contents depending on the constructor version used
     list() { empty_initialize(); }
@@ -169,11 +170,11 @@ public:
             cur->next = result;
         }
     }
-
+    //Constructs a list container object
     list (const list& x) {
         list(x.begin(), x.end());
     }
-
+    //Destroys the container object.
     ~list() {
         clear();
         put_node(node);
@@ -188,7 +189,7 @@ public:
     iterator insert (const_iterator position, const value_type& val) {
         return insert_aux (position, val);
     }
-
+    //The container is extended by inserting new elements before the element at the specified position
     iterator insert (const_iterator position, size_type n, const value_type& val) {
        iterator cur = position;
        iterator start = cur;
@@ -197,6 +198,7 @@ public:
        }
        return cur;
     }
+    //The container is extended by inserting new elements before the element at the specified position
     template <class InputIterator>
     iterator insert (const_iterator position, InputIterator first, InputIterator last) {
         iterator cur = position;
@@ -224,7 +226,6 @@ public:
         if (node->next != node)
             erase ((link_type)node->next);
     }
-
     //Assigns new contents to the list container, replacing its current contents, and modifying its size accordingly
     template <class InputIterator>
         void assign (InputIterator first, InputIterator last) {
@@ -239,6 +240,7 @@ public:
             if (n < size)
                 erase(it, node);
         }
+    //Assign new content to container
     void assign (size_type n, const value_type& val) {
         size_type size = distance(begin(), end());
         iterator it = begin();
@@ -261,7 +263,7 @@ public:
          return result;
        }
     }
-        
+    //Removes from the list container either a single element (position) or a range of elements ([first,last)).
     iterator erase (const_iterator first, const_iterator last ) {
         if (last != (link_type)node->next) {
             link_type cur = (link_type)first.node->prev;
@@ -320,6 +322,7 @@ public:
             else cur = (link_type)cur->next;
         }
     }
+    //Remove elements fulfilling condition
     template <class Predicate>
         void remove_if (Predicate pred) {
             link_type cur = (link_type) node->next;
@@ -463,6 +466,7 @@ public:
             swap(counter[fill-1]);
         }
 };
+    //Performs the appropriate comparison operation between the list containers lhs and rhs.
     template <class T>
         inline bool operator== (const list<T>& lhs, const list<T>& rhs) {
             typename list<T>::iterator first1 = lhs.begin();
@@ -495,6 +499,7 @@ public:
         inline bool operator>= (const list<T>& lhs, const list<T>& rhs) {
             return (lhs >rhs || lhs == rhs);
         }
+    //Exchanges the contents of two lists
     template <class T>
         void swap (list<T>& x, list<T>& y) {
             x.swap(y);
