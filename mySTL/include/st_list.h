@@ -5,6 +5,7 @@
 #include "st_allocator.h"
 #include "st_algorithm.h"
 #include "st_construct.h"
+#include <assert.h>
 
 namespace tinySTL {
 
@@ -116,6 +117,18 @@ private:
         result->next = cur.node;
         cur.node->prev = result;
         return result;
+    }
+    //transfer the elements from [first,last) to list before the position
+    void transfer (const_iterator position, iterator first, iterator last) {
+        if (position != last) {
+            ((link_type) first.node->prev)->next = last.node;
+            link_type tmp = (link_type)first.node->prev;
+            ((link_type) position.node->prev)->next = first.node;
+            first.node->prev = position.node->prev;
+            ((link_type) last.node->prev)->next = position.node;
+            position.node->prev = last.node->prev;
+            last.node->prev = tmp;
+        }
     }
 
 public:
@@ -407,6 +420,58 @@ public:
                 cur = (link_type)cur->next;
             }
         }
+    }
+    //Exchanges the content of the container by the content of x, which is another list of the same type. Sizes may differ
+    //O(n) complexity, in fact, we can exchange the node of the lists, in constants complexity
+    void swap_badway (list& x) {
+        link_type cur = (link_type) node->next;
+        link_type xcur = (link_type) x.node->next;
+        while (cur != node) {
+            if (xcur == x.node) {
+                link_type _next = (link_type) cur->next;
+                ((link_type) cur->prev)->next = cur->next;
+                ((link_type) cur->next)->prev = cur->prev;
+                destroy_node (cur);
+                cur = _next;
+            } else {
+                value_type tmp = cur->data;
+                cur->data = xcur->data;
+                xcur->data = tmp;
+                cur = (link_type)cur->next;
+                xcur = (link_type)xcur->next;
+            }
+        }
+        while (xcur != x.node) {
+            link_type _next = (link_type) xcur->next;
+            ((link_type) xcur->prev)->next = xcur->next;
+            ((link_type) xcur->next)->prev = xcur->prev;
+            x.destroy_node (xcur);
+            xcur = _next;
+        }
+    }
+    //Constants complexity
+    void swap (list& x) {
+        link_type tmp = node;
+        node = x.node;
+        x.node = tmp;
+    }
+    //Transfers elements from x into the container, inserting them at position
+    void splice (const_iterator position, list& x) {
+        assert (node != x.node);
+        if (!x.empty())
+            transfer (position, x.begin(), x.end());
+    }
+    // i and position can be the same list
+    void slpice (const_iterator position, list& x, const_iterator i) {
+        iterator j = i;
+        ++j;
+        if (i != position && j != position ) 
+            transfer (position, i, j);
+    }
+    // position can't be in [first,last), can be the same list
+    void splice (const_iterator position, list& x, iterator first, iterator last) {
+        if (first != last) 
+            transfer (position, first, last);
     }
     //Sorts the elements in the list, altering their position within the container
     void sort() {

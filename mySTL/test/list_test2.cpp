@@ -14,8 +14,14 @@ int main () {
     lst1.resize(20,9);
     lst1.reverse();
     lst1.unique();
+    lst2.push_back(1009);
+    //lst1.swap(lst2);
+    lst1.splice(lst1.begin(), lst2);
     tinySTL::list<int>::iterator it = lst1.begin();
-    for (; it != lst1.end(); ++it) 
+    ++it;
+    ++it;
+    lst1.splice(lst1.begin(), lst1, it, lst1.end());
+    for (it = lst1.begin(); it != lst1.end(); ++it) 
         std::cout<<*it<<"\t";
     std::cout<<std::endl;
     return 1;
