@@ -38,6 +38,82 @@ class deque_iterator {
         }
 
         reference operator* () const { return *cur; }
+        pointer operator-> () const { return cur; }
+
+        difference_type operator- () {
+            return difference_type (buffer_size() ) * (node - x.node - 1)
+                    + (cur - first) + (x.last - x.cur);
+        }
+
+        self& operator++ () {
+            ++cur; 
+            if (cur == last) {
+                set_node (node+1);
+                cur = first;
+            }
+            return *this;
+        }
+
+        self& operator++ (int) {
+            self tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        self& operator-- () {
+            if (cur == first) {
+                set_node (node-1);
+                cur = last;
+            }
+            --cur;
+            return *this;
+        }
+
+        self& operator-- (int) {
+            self tmp = *this;
+            --*this;
+            return tmp;
+        }
+
+        self operator+= (difference_type size) {
+            difference_type buf_size = buffer_size();
+            difference_type slack = size - last + cur;
+            difference_type buf_num = (slack + buf_size) / buf_size;
+            if (buf_num > 0) {
+                set_node (node + buf_num);
+                cur = first + slack - (buf_num - 1) * buf_size;
+            } else {
+                cur += size;
+            }
+            return *this;
+        }
+
+        self operator+ (difference_type size) {
+            self tmp = *this;
+            tmp += size;
+            return tmp;
+        }
+
+        self operator-= (difference_type size) {
+            return (*this) += -size;
+        }
+
+        self operator- (difference_type size) {
+            self tmp = *this;
+            tmp -= size;
+            return tmp;
+        }
+
+        reference operator[] (difference_type n) const {
+            return *(*this + n);
+        }
+
+        bool operator== (const self& x) const { return cur==x.cur;}
+        bool operator!= (const self& x) const { return cur != x.cur; }
+        bool operator< (const self& x) const { return (x.node == node ? cur < x.cur : node < x.node); }
+        bool operator<= (const self& x) const { return *this < x || *this == x; }
+        bool operator> (const self& x) const { return !((*this == x) || (*this < x)); }
+        bool operator>= ( const self& x) const { return *this > x || *this == x; }
 };
     inline size_t _deque_buf_size (size_t n, size_t sz) {
         return n != 0 ? n : (sz < 521 ? size_t ( 512 / sz ) : size_t (1));
