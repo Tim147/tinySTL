@@ -119,6 +119,68 @@ class deque_iterator {
         return n != 0 ? n : (sz < 521 ? size_t ( 512 / sz ) : size_t (1));
     }
 
+template <class T, class Alloc = simple_alloc, size_t buf_size>
+    class deque {
+        private:
+            typedef T   value_type;
+            typedef T*  pointer;
+            typedef const T*    const_pointer;
+            typedef const T&    const_reference;
+            typedef T&  reference;
+            typedef size_t  size_type;
+            typedef ptrdiff_t    difference_type;
+        public:
+            typedef deque_iterator<value_type, pointer, reference, buf_size> iterator;
+            typedef deque_iterator<const T, const T*, const T&, buf_size> const_iterator;
+        
+        protected:
+            typedef pointer* map_pointer;
+
+        protected:
+            iterator    start;
+            iterator    finish;
+
+            map_pointer map;
+            size_type map_size;
+
+        public:
+            iterator begin () { return start; }
+            const_iterator begin () const { return start; }
+            const_iterator cbegin () const { return start; }
+
+            iterator end () { return finish; }
+            const_iterator end () const { return finish; }
+            const_iterator cend () const { return finish; }
+
+            reference operator[] (size_type n) {
+                return start[difference_type(n)];
+            }
+
+            reference front () { return *start; }
+            const_reference front () nconst { return *start; }
+
+            reference back () { 
+                iterator tmp = finish;
+                --tmp;
+                return *tmp;
+            }
+            const_reference back () { 
+                iterator tmp = finish;
+                --tmp;
+                return *tmp;
+            }
+
+            size_type size () const { return (finish - start); }
+
+            size_type max_size () const { return size_type(-1); }
+
+            bool empty () const { return start == finish; }
+
+
+
+            
+    };
+
 }
 
 #endif
