@@ -92,25 +92,25 @@ class deque_iterator {
             self tmp = *this;
             tmp += size;
             return tmp;
-        }
+        }                           
 
         self operator-= (difference_type size) {
-            return (*this) += -size;
+            retur   n (*this) += -size;
         }
 
-        self operator- (difference_type size) {
+        self op  erator- (difference_type size) {
             self tmp = *this;
             tmp -= size;
-            return tmp;
+               return tmp;
         }
 
-        reference operator[] (difference_type n) const {
+        ref erence operator[] (difference_type n) const {
             return *(*this + n);
         }
-
+           
         bool operator== (const self& x) const { return cur==x.cur;}
         bool operator!= (const self& x) const { return cur != x.cur; }
-        bool operator< (const self& x) const { return (x.node == node ? cur < x.cur : node < x.node); }
+        bool    operator< (const self& x) const { return (x.node == node ? cur < x.cur : node < x.node); }
         bool operator<= (const self& x) const { return *this < x || *this == x; }
         bool operator> (const self& x) const { return !((*this == x) || (*this < x)); }
         bool operator>= ( const self& x) const { return *this > x || *this == x; }
@@ -142,6 +142,45 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
 
             map_pointer map;
             size_type map_size;
+            
+            typedef Alloc<value_type>   data_allocator;
+            typedef Alloc<pointer>      map_allocator;
+        private:
+
+            pointer allocate_node () {
+                return data_allocator::allocate(buffer_size());
+            }
+
+            void create_map_and_node (const size_type& num_elems) {
+                size_type node_num = num_elems / buffer_size() + 1;
+                
+                map_size = max(8, node_num+2);
+                map = map_allocator::allocate(map_size);
+
+                map_pointer nstart = map + (map_size - node_num)/2;
+                map_pointer nend = nstart + node_num - 1;
+
+                for (map_pointer cur = nstart; cur != nend; ++cur)
+                    *cur = allocate_node();
+
+                start.set_node (nstart);
+                finish.set_node (nend);
+
+                start.cur = start.first;
+                finish.cur = finish.first + num_elems % buffer_size();
+            }
+
+            void fill_initialize (size_type n, const value_type& value) {
+                create_map_and_node (n);
+
+                for (map_pointer cur = start.node; cur != finish.node; ++cur) 
+                   uninitialled_fill (*cur, *cur + buffer_size(), value);
+                uninitialled_fill (finish.first, finish.cur, value);
+            }
+
+
+                
+
 
         public:
             iterator begin () { return start; }
@@ -176,7 +215,10 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
 
             bool empty () const { return start == finish; }
 
-
+            deque (size_type n, const value_type& value)
+                : start(), finish(), map(0), mape_size(0) {
+                    fill_initiallize (n, value);
+                }
 
             
     };
