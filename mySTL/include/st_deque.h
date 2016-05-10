@@ -178,8 +178,41 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 uninitialled_fill (finish.first, finish.cur, value);
             }
 
+            void reallocate_map (size_type node_to_add, bool add_front) {
+                size_type old_node_num = finish.node - start.node + 1;
+                size_type new_node_num = old_node_num + node_to_add;
+                map_pointer new_start;
+                if (map_size > 2 * new_node_num) {
+                    new_start = map + (map_size - new_node_num) / 2
+                                    + (add_front?0:node_to_add);
+                    if (new_start < start.node)
+                        copy (start.node, finish.node + 1, new_start);
+                    else
+                        copy_backward (start.node, finish.node+1, new_start, old_node_num);
+                } else {
+                    size_type new_map_size = map_size + max (map_size, new_node_num) + 2;
+                    map_pointer new_map = map_allocator.allocate (new_map_size);
+                    new_start = new_map + (new_map_size - new_node_num) / 2
+                                        + (add_front ? 0 : node_to_add);
+                    copy (start.node, finish.node+1, new_start);
+                    map_allocator.deallocate(map);
+                    map = new_map;
+                    map_size = new_map_size;
+                }
+                start.set_node(new_start);
+                finish.set_node (new_start + old_node_num - 1);
+            }
 
-                
+            void reserve_map_at_back (size_type node_to_add = 1) {
+                if (node_to_add + 1 > map_size - (finish.node - start.node + 1) )
+                    reallocate_map (node_to_add, false);
+            }
+
+            void reserve_map_at_front (size_type node_to_add = 1) {
+                if (node_to_add > start.node - map) 
+                    reallocate_map (node_to_add, true);
+            }
+
 
 
         public:
@@ -216,9 +249,18 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
             bool empty () const { return start == finish; }
 
             deque (size_type n, const value_type& value)
-                : start(), finish(), map(0), mape_size(0) {
+                : start(), finish(), map(0), map_size(0) {
                     fill_initiallize (n, value);
                 }
+
+            explicit deque (size_type n) 
+                : start(), finish(), map(0), map_size(0) {
+                    fill_initiallize (n, value_type());
+                }
+            
+
+
+
 
             
     };
