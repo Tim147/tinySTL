@@ -212,6 +212,21 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 if (node_to_add > start.node - map) 
                     reallocate_map (node_to_add, true);
             }
+             void push_back_aux (const value_type& value) {
+                 reserve_map_at_back ();
+                 *(finish.node + 1) = node_allocator ();
+                 construct (finish.cur, value);
+                 finish.set_node (finish.node + 1);
+                 finish.cur = finish.first;
+             }
+
+             void push_front_aux ( const value_type& value) {
+                reserve_map_at_front ();
+                *(finish.node - 1) = node_allocator ();
+                start.set_node (start.node-1);
+                start.cur = start.last - 1;
+                construct (start.cur, value);
+             }
 
 
 
@@ -257,11 +272,22 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 : start(), finish(), map(0), map_size(0) {
                     fill_initiallize (n, value_type());
                 }
-            
 
+            void push_back (const value_type& value) {
+                if (finish.cur != finish.last - 1) {
+                    construct(finish.cur, value);
+                    ++finish.cur;
+                } else 
+                    push_back_aux (value);
+            }
 
-
-
+            void push_front (const value_type& value) {
+                if (start.cur != start.first) {
+                    construct (start.cur, value);
+                    --start.cur;
+                } else 
+                    push_front_aux (value);
+            }
             
     };
 
