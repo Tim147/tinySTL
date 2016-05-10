@@ -150,6 +150,10 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
             pointer allocate_node () {
                 return data_allocator::allocate(buffer_size());
             }
+            //deallocate a node buffer
+            void deallocate_node (pointer buff_ptr) {
+                data_allocator::deallocate (buff_ptr);
+            }
 
             void create_map_and_node (const size_type& num_elems) {
                 size_type node_num = num_elems / buffer_size() + 1;
@@ -169,7 +173,7 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 start.cur = start.first;
                 finish.cur = finish.first + num_elems % buffer_size();
             }
-
+            // iniilize n nodes
             void fill_initialize (size_type n, const value_type& value) {
                 create_map_and_node (n);
 
@@ -227,7 +231,20 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 start.cur = start.last - 1;
                 construct (start.cur, value);
              }
+             
+             void pop_back_aux () {
+                deallocate_node (finish.first);
+                finish.set_node (finish.node -1 );
+                finish.cur = finish.last - 1;
+                destroy (finish.cur);
+             }
 
+             void pop_front_aux () {
+                destroy (start.cur);
+                deallocate_node (start.first);
+                start.set_node (start.node + 1);
+                start.cur = start.first;
+             }
 
 
         public:
@@ -288,6 +305,23 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 } else 
                     push_front_aux (value);
             }
+
+            void pop_back () {
+                if (finish.cur != finish.first) {
+                    destroy (finish.cur);
+                    --finish.cur;
+                } else 
+                    pop_back_aux ();
+            }
+
+            void pop_front () {
+                if (start.cur != start.last - 1) {
+                    destroy (start.cur);
+                    ++start.cur;
+                } else 
+                    pop_front_aux ();
+            }
+
             
     };
 
