@@ -40,7 +40,7 @@ class deque_iterator {
         reference operator* () const { return *cur; }
         pointer operator-> () const { return cur; }
 
-        difference_type operator- () {
+        difference_type operator- (self x) {
             return difference_type (buffer_size() ) * (node - x.node - 1)
                     + (cur - first) + (x.last - x.cur);
         }
@@ -95,22 +95,22 @@ class deque_iterator {
         }                           
 
         self operator-= (difference_type size) {
-            retur   n (*this) += -size;
+            return (*this) += -size;
         }
 
-        self op  erator- (difference_type size) {
+        self operator- (difference_type size) {
             self tmp = *this;
             tmp -= size;
                return tmp;
         }
 
-        ref erence operator[] (difference_type n) const {
+        reference operator[] (difference_type n) const {
             return *(*this + n);
         }
            
         bool operator== (const self& x) const { return cur==x.cur;}
         bool operator!= (const self& x) const { return cur != x.cur; }
-        bool    operator< (const self& x) const { return (x.node == node ? cur < x.cur : node < x.node); }
+        bool operator< (const self& x) const { return (x.node == node ? cur < x.cur : node < x.node); }
         bool operator<= (const self& x) const { return *this < x || *this == x; }
         bool operator> (const self& x) const { return !((*this == x) || (*this < x)); }
         bool operator>= ( const self& x) const { return *this > x || *this == x; }
@@ -119,7 +119,7 @@ class deque_iterator {
         return n != 0 ? n : (sz < 521 ? size_t ( 512 / sz ) : size_t (1));
     }
 
-template <class T, class Alloc = simple_alloc, size_t buf_size>
+template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
     class deque {
         private:
             typedef T   value_type;
@@ -148,11 +148,11 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
         private:
 
             pointer allocate_node () {
-                return data_allocator::allocate(buffer_size());
+                return data_allocator:::allocate(buffer_size());
             }
             //deallocate a node buffer
             void deallocate_node (pointer buff_ptr) {
-                data_allocator::deallocate (buff_ptr);
+                data_allocator:::deallocate (buff_ptr);
             }
 
             void create_map_and_node (const size_type& num_elems) {
@@ -218,7 +218,7 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
             }
              void push_back_aux (const value_type& value) {
                  reserve_map_at_back ();
-                 *(finish.node + 1) = node_allocator ();
+                 *(finish.node + 1) = data_allocator::allocate ();
                  construct (finish.cur, value);
                  finish.set_node (finish.node + 1);
                  finish.cur = finish.first;
@@ -226,7 +226,7 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
 
              void push_front_aux ( const value_type& value) {
                 reserve_map_at_front ();
-                *(finish.node - 1) = node_allocator ();
+                *(finish.node - 1) = data_allocator::allocate ();
                 start.set_node (start.node-1);
                 start.cur = start.last - 1;
                 construct (start.cur, value);
@@ -245,6 +245,30 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 start.set_node (start.node + 1);
                 start.cur = start.first;
              }
+
+             iterator insert_aux (iterator pos, const value_type& val) {
+                difference_type index = pos - start;
+
+                if (index < (size()>>1) ) {
+                    push_front(front());
+                    iterator old_front = start;
+                    ++old_front;
+                    pos = start + index; // update pos in case for overflow of map
+                    iterator pos1 = pos;
+                    ++pos1;
+                    copy (old_front, pos1, start);
+                } else {
+                    push_back(back());
+                    iterator old_finish = finish;
+                    --old_finish;
+                    pos = start + index;
+                    copy_backward (pos, old_finish, finish);
+                }
+                *pos = val;
+                return pos;
+
+             }
+
 
 
         public:
@@ -289,6 +313,11 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 : start(), finish(), map(0), map_size(0) {
                     fill_initiallize (n, value_type());
                 }
+             ~deque () {
+                clear();
+                data_allocator:::deallocate (*start.node);
+                map_allocator::deallocate (start.node);
+             }
 
             void push_back (const value_type& value) {
                 if (finish.cur != finish.last - 1) {
@@ -321,7 +350,77 @@ template <class T, class Alloc = simple_alloc, size_t buf_size>
                 } else 
                     pop_front_aux ();
             }
+            //come back to the initiallize state
+            void clear () {
 
+                for (map_pointer node = start.node + 1; node != finish.node; ++node) {
+                    destroy (*node, *node + buff_size());
+                    data_allocator::deallocate (*node);
+                }
+
+                // reserve a buffer
+                if ( start.node != finish.node) {
+                    destroy (start.cur, start.last);
+                    destroy (finish.first, finish.cur);
+                    data_allocator::deallocate (*finish.node);
+                } else {
+                    destroy (start.cur, start.last);
+                    finish = start;
+                }
+
+            }
+            //erase a single element
+            iterator erase (iterator pos) {
+                iterator next = pos;
+                ++next;
+                difference_type index = pos - start;
+                if (index < (size()>>1) ) {
+                    copy_backward (start, pos, next);
+                    pop_front ();
+                } else {
+                    copy (next, finish, pos);
+                    pop_back();
+                }
+                return start + index;
+            }
+
+            iterator erase (iterator first, iterator last) {
+                if (first == start && last == finish) {
+                    clear();
+                    return finish;
+                } else {
+                    size_type n = last - first;
+                    difference_type to_finish = finish - last;
+                    difference_type to_start = first - start;
+                    if (to_start < to_finish) {
+                        copy_backward (start, first, last);
+                        iterator new_start = start + n;
+                        destroy (start, new_start);
+                        for (map_pointer node = start.node; node < new_start.node; ++node)
+                            data_allocator::deallocate (*node);
+                        start = new_start;
+                    } else {
+                        copy (last, finish, first);
+                        iterator new_finish = finish - n;
+                        destroy (new_finish, finish);
+                        for (map_pointer node = new_finish.node+1; node <= finish.node; ++node) 
+                            data_allocator:::deallocate (*node);
+                        finish = new_finish;
+                    }
+                }
+                return  start + to_start;
+            }
+            
+            iterator insert (iterator pos, const value_type& val) {
+                if (pos == start) {
+                    push_front (val);
+                    return start;
+                } else if (pos == finish) {
+                    push_back (val);
+                    return finish;
+                } else 
+                    return insert_aux (pos, val);
+            }
             
     };
 
