@@ -6,13 +6,13 @@
 #include <assert.h>
 
 namespace tinySTL {
-    template <class T, class Alloc = SimpleAlloc<T> >
+    template <class T, class Alloc = SimpleAlloc >
 class vector {
     private:
         T* _start;
         T* _end;
         T* _capacity;
-        Alloc data_allocator;
+        simple_alloc<T, Alloc> data_allocator;
 
     public:
         typedef 	 T 				value_type;

@@ -65,7 +65,7 @@ template <class T, class Ref, class Ptr>
             }
 };
 
-template <class T, class Alloc = SimpleAlloc<_list_node<T> > >
+template <class T, class Alloc = SimpleAlloc >
 class list {
 protected:
     typedef _list_node<T>   list_node;
@@ -83,7 +83,7 @@ protected:
     link_type   node;
 
 private:
-    Alloc node_allocator;
+    simple_alloc<_list_node<T> , Alloc> node_allocator;
 
 private:
     //allocate a single node

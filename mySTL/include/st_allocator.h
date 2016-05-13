@@ -5,14 +5,13 @@
 #include <iostream>
 
 namespace tinySTL {
-    template <class T>
     class SimpleAlloc {
     public:
-        typedef T           value_type;
-        typedef T*          pointer;
-        typedef const T*    const_pointer;
-        typedef T&          reference;
-        typedef const T&    const_reference;
+        typedef void           value_type;
+        typedef void*          pointer;
+       // typedef const void*    const_pointer;
+       // typedef T&          reference;
+       // typedef const T&    const_reference;
         typedef size_t      size_type;
         typedef ptrdiff_t   difference_type;
             
@@ -23,22 +22,19 @@ namespace tinySTL {
         static void (*my_oom_malloc_handler)();
         static void set_my_malloc_handler(void (*f)());
     public:
-        pointer allocate(size_type nbytes);
-        pointer reallocate(pointer begin, size_type nbytes);
-        void deallocate(pointer begin);
+        static pointer allocate(size_type nbytes);
+        static pointer reallocate(pointer begin, size_type nbytes);
+        static void deallocate(pointer begin);
     };
 
-    template <class T>
-    void (*SimpleAlloc<T>::my_oom_malloc_handler)() = 0; //set by user
+    void (*SimpleAlloc::my_oom_malloc_handler)() = 0; //set by user
 
-    template<class T>
-    void SimpleAlloc<T>::set_my_malloc_handler(void (*f)()) {
+    void SimpleAlloc::set_my_malloc_handler(void (*f)()) {
         void (*handler)() = my_oom_malloc_handler;
         handler = f;
     }
     
-    template <class T>
-    typename SimpleAlloc<T>::pointer SimpleAlloc<T>::oom_alloc(size_type nbytes) {
+    typename SimpleAlloc::pointer SimpleAlloc::oom_alloc(size_type nbytes) {
         void (*handler)();
         pointer result;
         while(true) {
@@ -49,15 +45,14 @@ namespace tinySTL {
             }
             (*handler)();
 
-            result = static_cast<pointer>(malloc(nbytes*sizeof(T)));
+            result = static_cast<pointer>(malloc(nbytes));
             if(result) {
                 return result;
             }
         }
     }
 
-    template <class T>
-    typename SimpleAlloc<T>::pointer SimpleAlloc<T>::oom_realloc(pointer begin, size_type nbytes) {
+    typename SimpleAlloc::pointer SimpleAlloc::oom_realloc(pointer begin, size_type nbytes) {
         void (*handler)();
         pointer result;
 
@@ -71,38 +66,56 @@ namespace tinySTL {
 
             (*handler)();
 
-            result = static_cast<pointer>(realloc(begin, nbytes*sizeof(T)));
+            result = static_cast<pointer>(realloc(begin, nbytes));
 
             if(result)
                 return result;
         }
     }
 
-    template <class T>
-    typename SimpleAlloc<T>::pointer SimpleAlloc<T>::allocate(size_type nbytes) {
-        pointer result = static_cast<pointer>(malloc(nbytes*sizeof(T)));
+    typename SimpleAlloc::pointer SimpleAlloc::allocate(size_type nbytes) {
+        pointer result = static_cast<pointer>(malloc(nbytes));
         if(!result)
-            oom_alloc(nbytes*sizeof(T));
+            oom_alloc(nbytes);
 
         return result;
     }
 
-    template <class T>
-    typename SimpleAlloc<T>::pointer SimpleAlloc<T>::reallocate(pointer begin, size_type nbytes) {
-        pointer result = static_cast<pointer>(realloc(begin, nbytes*sizeof(T)));
+    typename SimpleAlloc::pointer SimpleAlloc::reallocate(pointer begin, size_type nbytes) {
+        pointer result = static_cast<pointer>(realloc(begin, nbytes));
 
         if(!result)
-            oom_realloc(begin, nbytes*sizeof(T));
+            oom_realloc(begin, nbytes);
 
         return result;
     }
 
-    template <class T>
-    void SimpleAlloc<T>::deallocate(pointer begin) {
+    void SimpleAlloc::deallocate(pointer begin) {
         free(begin);
     }
 
+template <class T, class Alloc = SimpleAlloc>
+    class simple_alloc {
+        public:
+            static T* allocate (size_t n) {
+                return n == 0 ? 0 : (T*) Alloc::allocate(n * sizeof (T)); 
+            }
+            
+            static T* allocate () {
+                return (T*) Alloc::allocate (sizeof(T));
+            }
+
+            static void deallocate (T* p) {
+                Alloc::deallocate (p);
+            }
+
+            static T* reallocate (T* p, size_t n) {
+                return n == 0 ? 0 : (T*) Alloc::reallocate (p, n);
+            }
+    };
+
 }
+
 
 
 

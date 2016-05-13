@@ -1,17 +1,23 @@
 #ifndef ST_DEQUE_H
 #define ST_DEQUE_H
 
-#include "../include/st_iterator.h"
+#include "st_iterator.h"
+#include "st_allocator.h"
+#include "st_algorithm.h"
+#include "st_uninitialled.h"
 
 namespace tinySTL {
 
-template <class T, class Ptr, class Ref, size_t sizeBuf>
+inline size_t _deque_buf_size (size_t sz) {
+    return sz < 521 ? size_t ( 512 / sz ) : size_t (1);
+}
+template <class T, class Ptr, class Ref>
 class deque_iterator {
     protected:
-        typedef deque_iterator<T, T*, T&, sizeBuf> iterator;
-        typedef deque_iterator<const T, const T*, const T&, sizeBuf> const_iterator;
+        typedef deque_iterator<T, T*, T&> iterator;
+        typedef deque_iterator<const T, const T*, const T&> const_iterator;
 
-        static size_t buffer_size () { return _deque_buf_size (sizeBuf, sizeof(T)); }
+        static size_t buffer_size () { return _deque_buf_size (sizeof(T)); }
 
         typedef random_access_iterator_tag  iterator_category;
         typedef T                           value_type;
@@ -22,7 +28,7 @@ class deque_iterator {
         typedef T**                         map_pointer;
 
         typedef deque_iterator  self;
-    private:
+    public:
         T*  cur;
         T* first;
         T* last;
@@ -115,11 +121,8 @@ class deque_iterator {
         bool operator> (const self& x) const { return !((*this == x) || (*this < x)); }
         bool operator>= ( const self& x) const { return *this > x || *this == x; }
 };
-    inline size_t _deque_buf_size (size_t n, size_t sz) {
-        return n != 0 ? n : (sz < 521 ? size_t ( 512 / sz ) : size_t (1));
-    }
 
-template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
+template <class T, class Alloc = SimpleAlloc>
     class deque {
         private:
             typedef T   value_type;
@@ -130,8 +133,8 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
             typedef size_t  size_type;
             typedef ptrdiff_t    difference_type;
         public:
-            typedef deque_iterator<value_type, pointer, reference, buf_size> iterator;
-            typedef deque_iterator<const T, const T*, const T&, buf_size> const_iterator;
+            typedef deque_iterator<value_type, pointer, reference> iterator;
+            typedef deque_iterator<const T, const T*, const T&> const_iterator;
         
         protected:
             typedef pointer* map_pointer;
@@ -143,23 +146,25 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
             map_pointer map;
             size_type map_size;
             
-            typedef Alloc<value_type>   data_allocator;
-            typedef Alloc<pointer>      map_allocator;
+            simple_alloc<value_type, Alloc>   data_allocator;
+            simple_alloc<pointer, Alloc>      map_allocator;
         private:
 
+            size_type buf_size () const { return _deque_buf_size (sizeof (T)); }
+
             pointer allocate_node () {
-                return data_allocator:::allocate(buffer_size());
+                return data_allocator.allocate(buf_size());
             }
             //deallocate a node buffer
             void deallocate_node (pointer buff_ptr) {
-                data_allocator:::deallocate (buff_ptr);
+                data_allocator.deallocate (buff_ptr);
             }
 
             void create_map_and_node (const size_type& num_elems) {
-                size_type node_num = num_elems / buffer_size() + 1;
+                size_type node_num = num_elems / buf_size() + 1;
                 
-                map_size = max(8, node_num+2);
-                map = map_allocator::allocate(map_size);
+                map_size = max((size_type)8, node_num+2);
+                map = map_allocator.allocate(map_size);
 
                 map_pointer nstart = map + (map_size - node_num)/2;
                 map_pointer nend = nstart + node_num - 1;
@@ -171,14 +176,14 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
                 finish.set_node (nend);
 
                 start.cur = start.first;
-                finish.cur = finish.first + num_elems % buffer_size();
+                finish.cur = finish.first + num_elems % buf_size();
             }
             // iniilize n nodes
-            void fill_initialize (size_type n, const value_type& value) {
+            void fill_initiallize (size_type n, const value_type& value) {
                 create_map_and_node (n);
 
                 for (map_pointer cur = start.node; cur != finish.node; ++cur) 
-                   uninitialled_fill (*cur, *cur + buffer_size(), value);
+                   uninitialled_fill (*cur, *cur + buf_size(), value);
                 uninitialled_fill (finish.first, finish.cur, value);
             }
 
@@ -218,7 +223,7 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
             }
              void push_back_aux (const value_type& value) {
                  reserve_map_at_back ();
-                 *(finish.node + 1) = data_allocator::allocate ();
+                 *(finish.node + 1) = data_allocator.allocate ();
                  construct (finish.cur, value);
                  finish.set_node (finish.node + 1);
                  finish.cur = finish.first;
@@ -226,7 +231,7 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
 
              void push_front_aux ( const value_type& value) {
                 reserve_map_at_front ();
-                *(finish.node - 1) = data_allocator::allocate ();
+                *(finish.node - 1) = data_allocator.allocate ();
                 start.set_node (start.node-1);
                 start.cur = start.last - 1;
                 construct (start.cur, value);
@@ -285,14 +290,14 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
             }
 
             reference front () { return *start; }
-            const_reference front () nconst { return *start; }
+            const_reference front () const { return *start; }
 
             reference back () { 
                 iterator tmp = finish;
                 --tmp;
                 return *tmp;
             }
-            const_reference back () { 
+            const_reference back () const { 
                 iterator tmp = finish;
                 --tmp;
                 return *tmp;
@@ -315,8 +320,8 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
                 }
              ~deque () {
                 clear();
-                data_allocator:::deallocate (*start.node);
-                map_allocator::deallocate (start.node);
+                data_allocator.deallocate (*start.node);
+                map_allocator.deallocate (start.node);
              }
 
             void push_back (const value_type& value) {
@@ -354,15 +359,15 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
             void clear () {
 
                 for (map_pointer node = start.node + 1; node != finish.node; ++node) {
-                    destroy (*node, *node + buff_size());
-                    data_allocator::deallocate (*node);
+                    destroy (*node, *node + buf_size());
+                    data_allocator.deallocate (*node);
                 }
 
                 // reserve a buffer
                 if ( start.node != finish.node) {
                     destroy (start.cur, start.last);
                     destroy (finish.first, finish.cur);
-                    data_allocator::deallocate (*finish.node);
+                    data_allocator.deallocate (*finish.node);
                 } else {
                     destroy (start.cur, start.last);
                     finish = start;
@@ -397,18 +402,18 @@ template <class T, class Alloc = simple_alloc, size_t buf_size = 1>
                         iterator new_start = start + n;
                         destroy (start, new_start);
                         for (map_pointer node = start.node; node < new_start.node; ++node)
-                            data_allocator::deallocate (*node);
+                            data_allocator.deallocate (*node);
                         start = new_start;
                     } else {
                         copy (last, finish, first);
                         iterator new_finish = finish - n;
                         destroy (new_finish, finish);
                         for (map_pointer node = new_finish.node+1; node <= finish.node; ++node) 
-                            data_allocator:::deallocate (*node);
+                            data_allocator.deallocate (*node);
                         finish = new_finish;
                     }
+                    return  start + to_start;
                 }
-                return  start + to_start;
             }
             
             iterator insert (iterator pos, const value_type& val) {

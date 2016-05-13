@@ -1,4 +1,4 @@
-#include "./include/st_vector.h"
+#include "../include/st_vector.h"
 #include <iostream>
 
 int main() {

@@ -2,7 +2,7 @@
 #include "../include/st_deque.h"
 
 int main () {
-    deque<int> deq;
+    tinySTL::deque<int> deq(3,4);
     return 0;
 }
 
