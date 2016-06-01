@@ -1,5 +1,7 @@
-#ifndef ST_BK_TREE
-#define ST_BR_TREE
+#ifndef ST_RB_TREE
+#define ST_RB_TREE
+#include "st_allocator.h"
+#include "st_construct.h"
 
 namespace tinySTL {
 
@@ -117,14 +119,117 @@ template <class T>
 
     };
 
-template <class T, class key_of_value, class compare, class Alloc = simple_alloc >
+template <class Key, class Value, class KeyofValue, class Compare, class Alloc = simpleAlloc >
 class rb_tree {
+    public:
+        typedef _rb_tree_node<Value>                        rb_tree_node;
+        typedef simple_alloc<rb_tree_node, Alloc>           rb_tree_node_allocator;
+        typedef _color_type                                 color_type;
+        
+        typedef Key                                         key_type;
+        typedef Value                                       value_type;
+        typedef value_type*                                 pointer;
+        typedef const value_type*                           const_pointer;
+        typedef value_type&                                 reference;
+        typedef const value_type&                           const_reference;
+        typedef rb_tree_node*                               link_type;
+        typedef size_t                                      size_type;
+        typedef ptrdiff_t                                   difference_type;
+
+    protected:
+        
+        link_type get_node () { return rb_tree_node_allocator::allocate(1); }
+        link_type put_node (link_type p) { rb_tree_node_allocator::deallocate(p); }
+
+        link_type create_node (const value_type& val) {
+            link_type tmp = get_node();
+            construct (&tmp->value_field, val);
+            return tmp;
+        }
+
+        link_type clone_node (link_type p) {
+            link_type tmp = create_node (p->value_field);
+            tmp->color = x->color;
+            tmp->left = 0;
+            tmp->right = 0;
+            return tmp;
+        }
+
+        void destroy_node (link_type p) {
+            destroy (&p->value_field);
+            put_node(p);
+        }
+
+    protected:
+        size_type   node_num;
+        link_type   header;
+        Compare     key_compare;
+
+        link_type& root () const { return (link_type&) header->parent; }
+        link_type& leftmost () const { return (link_type&) header->left; }
+        link_type& rightmost () const { return (link_type&) header->right; }
+
+        static link_type& left (link_type x) { return (link_type&) x->left; }
+        static link_type& right (link_type x) { return (link_type&) x->right; }
+        static link_type& parent (link_type x) { return (link_type&) x->parent; }
+
+        static reference value (link_type x) { return x->value_field; }
+        static const Key& key (link_type X) const { return KeyofValue() (value(X)); }
+        static color_type& color (link_type x) { return (color_type&) x->color; }
+
+        static link_type minimum (link_type x) {
+            return (link_type) _rb_tree_node_base::minimum (x); 
+        }
+
+        static link_type maximum (link_type x) {
+            return (link_type) _rb_tree_node_base::maximum (x);
+        }
+
+    public:
+        typedef rb_tree_iterator<value_type> iterator;
     
-}
+    private:
+        iterator _insert (link_type x, link_type y, const value_type& val);
+        link_type _copy (link_type x, link_type p);
 
+        void _erase (link_type x);
 
+        void init () {
+            header = get_node ();
+            color (header) = _red;
 
+            root() = 0;
+            leftmost () = 0;
+            rightmost () = 0;
+        }
 
+    public:
+        rb_tree (const Compare& comp = Compare() )
+            : node_num (0), key_compare (comp) { init (); }
+
+        ~rb_tree () {
+            clear ();
+            put_node(header);
+        }
+
+        rb_tree<Key, Value, KeyofValue, Compare, Alloc>& operator= 
+            ( const rb_tree<Key, Value, KeyofValue, Compare, Alloc>& x);
+
+    public:
+        Compare key_comp () const { return key_compare; }
+        iterator begin () { return leftmost(); }
+        iterator end() { return header; }
+        bool empty () const { return node_num == 0; }
+        size_type size () const { return node_num; }
+        size_type max_size () const { return size_type(-1); }
+
+    public:
+
+        pair<iterator, bool> insert_unique (const value_type& x);
+
+        iterator insert_equal (const value_type& x);
+
+};
 
 }
 #endif 
