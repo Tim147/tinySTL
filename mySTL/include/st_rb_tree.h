@@ -231,5 +231,78 @@ class rb_tree {
 
 };
 
+inline void rb_tree_rotate_right (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
+    _rb_tree_node_base* y = x->left;
+    x->left = y->right;
+    if (y->right) 
+        y->right->parent = x;
+    y->parent = x->parent;
+    if (x == root) 
+        root = y;
+    else if (x == x->parent->left)
+        x->parent->left = y;
+    else
+        x->parent->right = y;
+    y->right = x;
+    x->parent = y;
+}
+
+inline void rb_tree_rotate_left (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
+    _rb_tree_node_base* y = x->right;
+    x->right = y->left;
+    if (y->left)
+        y->left->parent = x;
+    if (x == root) 
+        root = y;
+    else if (x == x->parent->left)
+        x->parent->left = y;
+    else
+        x->parent->right = y;
+    y->left = x;
+    x->parent = y;
+}
+
+inline void rb_tree_rebalance (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
+    x->color = _red;
+    while (x != root && x->parent->color == _red ) {
+        if (x->parent == x->parent->left) {
+            _rb_tree_node_base* y = x->parent->parent->right;
+            if (y && y->color == _red) {
+                x->parent->color = _black;
+                y->color = _black;
+                x->parent->parent->color = _red;
+                x = x->parent->parent;
+            } else {
+                if (x == x->parent->right) {
+                    x = x->parent;
+                    rb_tree_rotate_left (x, root);
+                }
+                x->parent->color = _black;
+                x->parent->parent->color = _red;
+                rb_tree_rotate_right (x->parent->parent, root);
+            }
+        } else {
+            _rb_tree_node_base* y = x->parent->parent->left;
+            if (y && y->color == _red) {
+                x->parent->color = _black;
+                y->color = _black;
+                x->parent->parent->color = _red;
+                x = x->parent->parent;
+            } else {
+                if (x == x->parent->right) {
+                    x = x->parent;
+                    rb_tree_rotate_right (x, root);
+                }
+                x->parent->color = _black;
+                x->parent->parent->color = _red;
+                rb_tree_rotate_left (x->parent->parent, root);
+            }
+        }
+    }
+    root->color = _black;
+}
+
+
+
 }
 #endif 
