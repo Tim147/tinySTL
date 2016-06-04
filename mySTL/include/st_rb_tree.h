@@ -189,7 +189,34 @@ class rb_tree {
         typedef rb_tree_iterator<value_type> iterator;
     
     private:
-        iterator _insert (link_type x, link_type y, const value_type& val);
+        //x is the insert pos, x != 0 for equal case
+        iterator _insert (link_type x, link_type y, const value_type& val) {
+            link_type z;
+            if (y == header || x != 0 || key_compare (KeyofValue()(val), key(y))) {
+                z = create_node (val);
+                left(y) = z;
+                if ( y == header) {
+                    root() = z;
+                    rightmost () = z;
+                }
+                else if (y == leftmost())
+                    leftmost() = z;
+            } else {
+                z = create_node(val);
+                right(y) = z;
+                if (y == rightmost () )
+                    rightmost() = z;
+            }
+            parent (z) = y;
+            left (z) = 0;
+            right (z) = 0;
+
+            rb_tree_reblance (z, header->parent);
+            ++node_num;
+            return iterator (z);
+        }
+
+
         link_type _copy (link_type x, link_type p);
 
         void _erase (link_type x);
@@ -225,9 +252,37 @@ class rb_tree {
 
     public:
 
-        pair<iterator, bool> insert_unique (const value_type& x);
+        pair<iterator, bool> insert_unique (const value_type& x) {
+            link_type pre = header;
+            link_type cur = root();
+            bool comp = true;
+            while (cur != 0) {
+                pre = cur;
+                comp = key_compare(KeyofValue()(x), key(cur));
+                cur = comp ? left (cur) : right (cur);
+            }
+            iterator j = iterator (pre);
+            if (comp) {
+                if (j == begin()) return pair<iterator, bool>(_insert (cur, pre, x), true);
+                else --j;
+            }
 
-        iterator insert_equal (const value_type& x);
+            if (key_compare (key(j.node), KeyofValue()(x)))
+                return pair<iterator, bool>(_insert (cur, pre, x), true);
+            return pair<iterator, bool>(j, false);
+        }
+
+        iterator insert_equal (const value_type& x) {
+            link_type pre = header;
+            link_type cur = root();
+            bool comp = true;
+            while (cur != 0) {
+                pre = cur;
+                comp = key_compare (KeyofValue ()(x), key(cur));
+                cur = comp ? left (cur) : right (cur);
+            }
+            return _insert(cur, pre, x);
+        }
 
 };
 
