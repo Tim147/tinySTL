@@ -286,6 +286,43 @@ class rb_tree {
 
 };
 
+template <class Key, class Value, class KeyofValue, class Compare, class Alloc = simpleAlloc >
+void rb_tree<Key, Value, KeyofValue, Compare>::erase ( 
+        rb_tree<Key, Value, KeyofValue, Compare>::link_type z) {
+    link_type y = z;
+    _color_type original_color = y->color;
+    link_type x;
+    if (z->left == 0) {
+        if (z == leftmost()) leftmost() = z->right;
+        x = z->right;
+        rb_tree_transplant (z, z->right, root());
+    } else if (z->right == 0) {
+        if (z == rightmost()) rightmost() = z->left;
+        x = z->left;
+        rb_tree-transplant (z, z.left, root());
+    } else {
+        iterator j = iterator (z->right);
+        --j;
+        y = j.node;
+        original_color = y->color;
+        x = y->right;
+        if (y->parent == z) {
+            if (x != 0) x->parent = y;
+        } else {
+            rb_tree_transplant (z, y, root());
+            y->right = z->right;
+            y->right->parent = y;
+        }
+        rb_tree_transplant (z. y, root());
+        y->left = z->left;
+        y->left->parent = y;
+        y->color = z->color;
+    }
+    if (original_color == _black)
+        rb_erase_reblance (x, root());
+
+}
+
 inline void rb_tree_rotate_right (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
     _rb_tree_node_base* y = x->left;
     x->left = y->right;
@@ -320,7 +357,7 @@ inline void rb_tree_rotate_left (_rb_tree_node_base* x, _rb_tree_node_base*& roo
 inline void rb_tree_rebalance (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
     x->color = _red;
     while (x != root && x->parent->color == _red ) {
-        if (x->parent == x->parent->left) {
+        if (x == x->parent->left) {
             _rb_tree_node_base* y = x->parent->parent->right;
             if (y && y->color == _red) {
                 x->parent->color = _black;
@@ -355,6 +392,73 @@ inline void rb_tree_rebalance (_rb_tree_node_base* x, _rb_tree_node_base*& root)
         }
     }
     root->color = _black;
+}
+
+inline void rb_erase_reblance (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
+    while (x != root && x->color == _black) {
+        if (x == x->parent->left ) {
+            _rb_tree_node_base* w = x->parent->right;
+            if ( w && w->color == _red) {
+                w->color = _black;
+                x->parent->color = _red;
+                rb_tree_rotate_left (x->parent, root);
+                w = x->parent->right;
+            }
+            if ( (w->left == 0 || w->left->color == _black)
+                    && (w->right == 0 || w->right->color == _black)) {
+                w->color = _red;
+                x = x->parent;
+            } else {
+                if (w->right == 0 || w-right->color == _black) {
+                    if (w->left != 0) w->left->color = _black; //w->left won't be null
+                    w->color = _red;
+                    rb_tree_rotate_right (w, root);
+                    w = x->parent->right;
+                }
+                w->color = x->parent->color;
+                x->parent->color = _black;
+                if (w->right != 0) w->right->color = _black;
+                rb_tree_rotate_left (x->parent, root);
+                x = root;
+            }
+        } else {
+            _rb_tree_node_base* w = x->parent->left;
+            if ( w && w->color == _red) {
+                w->color = _black;
+                x->parent->color = _red;
+                rb_tree_rotaet_right (x->parent, root);
+                w = x->parent->right;
+            }
+            if ( (w->left == 0 || w->left->color == _black) 
+                    && (w->right == 0 || w->right->color == _black)) {
+                w->color = _red;
+                x = x->parent;
+            } else {
+                if (w->left == 0 ||w->left->color == _black) {
+                    if (w->right != 0) w->right->color = _black;
+                    w->color = _red;
+                    rb_tree_rotate_left (w, root);
+                    w = x->parent->left;
+                }
+                w->color = x->parent->color;
+                x->parent->color = _black;
+                if (w->left != 0) w->left->color = _black;
+                rb_tree_rotate_right (x->parent, root);
+                x = root;
+            }
+        }
+        x->color = _black;
+    }
+}
+
+inline void rb_tree_transplant (_rb_tree_node_base* x, _rb_tree_node_base* y, _rb_tree_node_base&* root)  {
+    if (x == root) 
+        root = y;
+    else if (x == x->parent->left) 
+        x->parent->left = y;
+    else 
+        x->parent->right = y;
+    y->parent = x->parent;
 }
 
 
