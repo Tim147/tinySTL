@@ -2,6 +2,7 @@
 #define ST_RB_TREE
 #include "st_allocator.h"
 #include "st_construct.h"
+#include "st_pair.h"
 
 namespace tinySTL {
 
@@ -10,35 +11,38 @@ const _color_type   _red = false;
 const _color_type   _black = true;
 
 class rb_tree_base {
-    typedef rb_tree_base*   base_ptr;
+    public:
+        typedef rb_tree_base*   base_ptr;
 
-    _color_type color;
-    base_ptr    head;
-    base_ptr    parent;
-    base_ptr    left;
-    base_ptr    right;
+        _color_type color;
+        base_ptr    head;
+        base_ptr    parent;
+        base_ptr    left;
+        base_ptr    right;
 
-    static  base_ptr  minimum (base_ptr p) {
-        while (p->left != 0) p = p->left;
-        return p;
-    }
+        static  base_ptr  minimum (base_ptr p) {
+            while (p->left != 0) p = p->left;
+            return p;
+        }
 
-    static base_ptr maximum (base_ptr p) {
-        while (p->right != 0) p = p->right;
-        return p;
-    }
+        static base_ptr maximum (base_ptr p) {
+            while (p->right != 0) p = p->right;
+            return p;
+        }
 
 };
 
 template <class T>
-struct _rb_tree_node : public _rb_tree_base {
+class _rb_tree_node : public rb_tree_base {
+public:
     typedef _rb_tree_node<T>*   link_type;
+    typedef rb_tree_base::base_ptr base_ptr;
     typedef T                   value_type;
     value_type  value_field;
 };
 
 struct  _rb_tree_base_iterator {
-    typedef _rb_tree_base::base_ptr base_ptr;
+    typedef rb_tree_base::base_ptr base_ptr;
     typedef bidirectional_iterator_tag  iterator_category;
     typedef size_t                      size_type;
     typedef ptrdiff_t                   difference_type;
@@ -80,16 +84,17 @@ struct  _rb_tree_base_iterator {
 
 template <class T>
     struct rb_tree_iterator : public _rb_tree_base_iterator {
-        typedef T   value_type;
-        typedef T&  reference;
-        typedef T*  pointer;
-        typedef rb_tree_iterator<T> iterator;
-        typedef const rb_tree_iterator<T>   const_iterator;
-        typedef rb_tree_iterator<T>* link_type;
+        typedef T                                           value_type;
+        typedef T&                                          reference;
+        typedef T*                                          pointer;
+        typedef rb_tree_iterator<T>                         iterator;
+        typedef const rb_tree_iterator<T>                   const_iterator;
+        typedef rb_tree_iterator<T>*                        link_type;
+        typedef typename _rb_tree_base_iterator::base_ptr   base_ptr;
 
         rb_tree_iterator() {}
-        rb_tree_iterator(iterator x) { node = x.node; }
-        rb_tree_iterator(const_iterator x) { node = x.node; }
+        rb_tree_iterator(base_ptr x) { node = x; }
+        rb_tree_iterator(const_iterator& x) { node = x.node; }
         
 
         reference operator* () const { return link_type(node)->value_field; }
@@ -116,10 +121,9 @@ template <class T>
             decrement();
             return tmp;
         }
-
     };
 
-template <class Key, class Value, class KeyofValue, class Compare, class Alloc = simpleAlloc >
+template <class Key, class Value, class KeyofValue, class Compare, class Alloc = SimpleAlloc >
 class rb_tree {
     public:
         typedef _rb_tree_node<Value>                        rb_tree_node;
@@ -133,6 +137,7 @@ class rb_tree {
         typedef value_type&                                 reference;
         typedef const value_type&                           const_reference;
         typedef rb_tree_node*                               link_type;
+        typedef typename rb_tree_node::base_ptr             base_ptr;
         typedef size_t                                      size_type;
         typedef ptrdiff_t                                   difference_type;
 
@@ -149,7 +154,7 @@ class rb_tree {
 
         link_type clone_node (link_type p) {
             link_type tmp = create_node (p->value_field);
-            tmp->color = x->color;
+            tmp->color = p->color;
             tmp->left = 0;
             tmp->right = 0;
             return tmp;
@@ -162,9 +167,9 @@ class rb_tree {
 
         void free_node (link_type p) {
             if (p == 0) return ;
-            if (p->left != 0) free_node (p->left);
-            if (p->right != 0) free_node (p->right);
-            destroy (p);
+            if (p->left != 0) free_node ((link_type)(p->left));
+            if (p->right != 0) free_node ((link_type)(p->right));
+            destroy_node (p);
         }
 
     protected:
@@ -181,15 +186,15 @@ class rb_tree {
         static link_type& parent (link_type x) { return (link_type&) x->parent; }
 
         static reference value (link_type x) { return x->value_field; }
-        static const Key& key (link_type X) const { return KeyofValue() (value(X)); }
+        static const Key key (link_type X) { return KeyofValue() (value(X)); }
         static color_type& color (link_type x) { return (color_type&) x->color; }
 
         static link_type minimum (link_type x) {
-            return (link_type) _rb_tree_node_base::minimum (x); 
+            return (link_type) rb_tree_base::minimum (x); 
         }
 
         static link_type maximum (link_type x) {
-            return (link_type) _rb_tree_node_base::maximum (x);
+            return (link_type) rb_tree_base::maximum (x);
         }
 
     public:
@@ -218,7 +223,7 @@ class rb_tree {
             left (z) = 0;
             right (z) = 0;
 
-            rb_tree_reblance (z, header->parent);
+            rb_tree_rebalance (z, header->parent);
             ++node_num;
             return iterator (z);
         }
@@ -226,7 +231,6 @@ class rb_tree {
 
         link_type _copy (link_type x, link_type p);
 
-        void _erase (link_type x);
 
         void init () {
             header = get_node ();
@@ -244,6 +248,40 @@ class rb_tree {
         ~rb_tree () {
             clear ();
             put_node(header);
+        }
+
+        void erase (link_type z) {
+            link_type y = z;
+            _color_type original_color = y->color;
+            link_type x;
+            if (z->left == 0) {
+                if (z == leftmost()) leftmost() = z->right;
+                x = z->right;
+                rb_tree_transplant (z, z->right, root());
+            } else if (z->right == 0) {
+                if (z == rightmost()) rightmost() = z->left;
+                x = z->left;
+                rb_tree_transplant (z, z.left, root());
+            } else {
+                iterator j = iterator (z->right);
+                --j;
+                y = j.node;
+                original_color = y->color;
+                x = y->right;
+                if (y->parent == z) {
+                    if (x != 0) x->parent = y;
+                } else {
+                    rb_tree_transplant (z, y, root());
+                    y->right = z->right;
+                    y->right->parent = y;
+                }
+                rb_tree_transplant (z. y, root());
+                y->left = z->left;
+                y->left->parent = y;
+                y->color = z->color;
+            }
+            if (original_color == _black)
+                rb_erase_rebalance (x, root());
         }
 
         rb_tree<Key, Value, KeyofValue, Compare, Alloc>& operator= 
@@ -265,7 +303,7 @@ class rb_tree {
 
     public:
 
-        pair<iterator, bool> insert_unique (const value_type& x) {
+        typename tinySTL::pair<iterator, bool> insert_unique (const value_type& x) {
             link_type pre = header;
             link_type cur = root();
             bool comp = true;
@@ -299,45 +337,13 @@ class rb_tree {
 
 };
 
-template <class Key, class Value, class KeyofValue, class Compare, class Alloc = simpleAlloc >
-void rb_tree<Key, Value, KeyofValue, Compare>::erase ( 
-        rb_tree<Key, Value, KeyofValue, Compare>::link_type z) {
-    link_type y = z;
-    _color_type original_color = y->color;
-    link_type x;
-    if (z->left == 0) {
-        if (z == leftmost()) leftmost() = z->right;
-        x = z->right;
-        rb_tree_transplant (z, z->right, root());
-    } else if (z->right == 0) {
-        if (z == rightmost()) rightmost() = z->left;
-        x = z->left;
-        rb_tree-transplant (z, z.left, root());
-    } else {
-        iterator j = iterator (z->right);
-        --j;
-        y = j.node;
-        original_color = y->color;
-        x = y->right;
-        if (y->parent == z) {
-            if (x != 0) x->parent = y;
-        } else {
-            rb_tree_transplant (z, y, root());
-            y->right = z->right;
-            y->right->parent = y;
-        }
-        rb_tree_transplant (z. y, root());
-        y->left = z->left;
-        y->left->parent = y;
-        y->color = z->color;
-    }
-    if (original_color == _black)
-        rb_erase_reblance (x, root());
+//template <class Key, class Value, class KeyofValue, class Compare, class Alloc = SimpleAlloc >
+//void rb_tree<Key, Value, KeyofValue, Compare>::erase (rb_tree<Key, Value, KeyofValue, Compare>::link_type z) {
+//
+//}
 
-}
-
-inline void rb_tree_rotate_right (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
-    _rb_tree_node_base* y = x->left;
+inline void rb_tree_rotate_right (rb_tree_base* x, rb_tree_base*& root) {
+    rb_tree_base* y = x->left;
     x->left = y->right;
     if (y->right) 
         y->right->parent = x;
@@ -352,8 +358,8 @@ inline void rb_tree_rotate_right (_rb_tree_node_base* x, _rb_tree_node_base*& ro
     x->parent = y;
 }
 
-inline void rb_tree_rotate_left (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
-    _rb_tree_node_base* y = x->right;
+inline void rb_tree_rotate_left (rb_tree_base* x, rb_tree_base*& root) {
+    rb_tree_base* y = x->right;
     x->right = y->left;
     if (y->left)
         y->left->parent = x;
@@ -367,11 +373,11 @@ inline void rb_tree_rotate_left (_rb_tree_node_base* x, _rb_tree_node_base*& roo
     x->parent = y;
 }
 
-inline void rb_tree_rebalance (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
+inline void rb_tree_rebalance (rb_tree_base* x, rb_tree_base*& root) {
     x->color = _red;
     while (x != root && x->parent->color == _red ) {
         if (x == x->parent->left) {
-            _rb_tree_node_base* y = x->parent->parent->right;
+            rb_tree_base* y = x->parent->parent->right;
             if (y && y->color == _red) {
                 x->parent->color = _black;
                 y->color = _black;
@@ -387,7 +393,7 @@ inline void rb_tree_rebalance (_rb_tree_node_base* x, _rb_tree_node_base*& root)
                 rb_tree_rotate_right (x->parent->parent, root);
             }
         } else {
-            _rb_tree_node_base* y = x->parent->parent->left;
+            rb_tree_base* y = x->parent->parent->left;
             if (y && y->color == _red) {
                 x->parent->color = _black;
                 y->color = _black;
@@ -407,10 +413,10 @@ inline void rb_tree_rebalance (_rb_tree_node_base* x, _rb_tree_node_base*& root)
     root->color = _black;
 }
 
-inline void rb_erase_reblance (_rb_tree_node_base* x, _rb_tree_node_base*& root) {
+inline void rb_erase_reblance (rb_tree_base* x, rb_tree_base*& root) {
     while (x != root && x->color == _black) {
         if (x == x->parent->left ) {
-            _rb_tree_node_base* w = x->parent->right;
+            rb_tree_base* w = x->parent->right;
             if ( w && w->color == _red) {
                 w->color = _black;
                 x->parent->color = _red;
@@ -422,7 +428,7 @@ inline void rb_erase_reblance (_rb_tree_node_base* x, _rb_tree_node_base*& root)
                 w->color = _red;
                 x = x->parent;
             } else {
-                if (w->right == 0 || w-right->color == _black) {
+                if (w->right == 0 || w->right->color == _black) {
                     if (w->left != 0) w->left->color = _black; //w->left won't be null
                     w->color = _red;
                     rb_tree_rotate_right (w, root);
@@ -435,11 +441,11 @@ inline void rb_erase_reblance (_rb_tree_node_base* x, _rb_tree_node_base*& root)
                 x = root;
             }
         } else {
-            _rb_tree_node_base* w = x->parent->left;
+            rb_tree_base* w = x->parent->left;
             if ( w && w->color == _red) {
                 w->color = _black;
                 x->parent->color = _red;
-                rb_tree_rotaet_right (x->parent, root);
+                rb_tree_rotate_right (x->parent, root);
                 w = x->parent->right;
             }
             if ( (w->left == 0 || w->left->color == _black) 
@@ -464,7 +470,7 @@ inline void rb_erase_reblance (_rb_tree_node_base* x, _rb_tree_node_base*& root)
     }
 }
 
-inline void rb_tree_transplant (_rb_tree_node_base* x, _rb_tree_node_base* y, _rb_tree_node_base&* root)  {
+inline void rb_tree_transplant (rb_tree_base* x, rb_tree_base* y, rb_tree_base*& root)  {
     if (x == root) 
         root = y;
     else if (x == x->parent->left) 
