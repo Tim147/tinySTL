@@ -160,6 +160,13 @@ class rb_tree {
             put_node(p);
         }
 
+        void free_node (link_type p) {
+            if (p == 0) return ;
+            if (p->left != 0) free_node (p->left);
+            if (p->right != 0) free_node (p->right);
+            destroy (p);
+        }
+
     protected:
         size_type   node_num;
         link_type   header;
@@ -249,6 +256,12 @@ class rb_tree {
         bool empty () const { return node_num == 0; }
         size_type size () const { return node_num; }
         size_type max_size () const { return size_type(-1); }
+        void clear () {
+            free_node (root());
+            leftmost () = 0;
+            rightmost () = 0;
+            root() = 0;
+        }
 
     public:
 
