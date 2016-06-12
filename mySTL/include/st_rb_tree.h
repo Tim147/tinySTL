@@ -166,10 +166,11 @@ class rb_tree {
         }
 
         void free_node (link_type p) {
-            if (p == 0) return ;
+            if (p == 0 || p == header) return ;
             if (p->left != 0) free_node ((link_type)(p->left));
             if (p->right != 0) free_node ((link_type)(p->right));
             destroy_node (p);
+            return ;
         }
 
     protected:
@@ -177,9 +178,9 @@ class rb_tree {
         link_type   header;
         Compare     key_compare;
 
-        link_type& root () const { return (link_type&) header->parent; }
-        link_type& leftmost () const { return (link_type&) header->left; }
-        link_type& rightmost () const { return (link_type&) header->right; }
+        link_type& root ()  { return (link_type&) header->parent; }
+        link_type& leftmost ()  { return (link_type&) header->left; }
+        link_type& rightmost ()  { return (link_type&) header->right; }
 
         static link_type& left (link_type x) { return (link_type&) x->left; }
         static link_type& right (link_type x) { return (link_type&) x->right; }
@@ -250,18 +251,18 @@ class rb_tree {
             put_node(header);
         }
 
-        void erase (link_type z) {
-            link_type y = z;
+        void _erase (base_ptr z) {
+            base_ptr y = z;
             _color_type original_color = y->color;
-            link_type x;
+            base_ptr x;
             if (z->left == 0) {
-                if (z == leftmost()) leftmost() = z->right;
+                if (z == leftmost()) leftmost() =(link_type) z->right;
                 x = z->right;
-                rb_tree_transplant (z, z->right, root());
+                rb_tree_transplant (z, z->right, header->parent);
             } else if (z->right == 0) {
-                if (z == rightmost()) rightmost() = z->left;
+                if (z == rightmost()) rightmost() = (link_type)z->left;
                 x = z->left;
-                rb_tree_transplant (z, z.left, root());
+                rb_tree_transplant (z, z->left, header->parent);
             } else {
                 iterator j = iterator (z->right);
                 --j;
@@ -271,17 +272,18 @@ class rb_tree {
                 if (y->parent == z) {
                     if (x != 0) x->parent = y;
                 } else {
-                    rb_tree_transplant (z, y, root());
+                    rb_tree_transplant (y, y->right, header->parent);
                     y->right = z->right;
                     y->right->parent = y;
                 }
-                rb_tree_transplant (z. y, root());
+                rb_tree_transplant (z, y, header->parent);
                 y->left = z->left;
                 y->left->parent = y;
                 y->color = z->color;
             }
             if (original_color == _black)
-                rb_erase_rebalance (x, root());
+                rb_erase_rebalance (x, header->parent);
+
         }
 
         rb_tree<Key, Value, KeyofValue, Compare, Alloc>& operator= 
@@ -334,6 +336,11 @@ class rb_tree {
             }
             return _insert(cur, pre, x);
         }
+        
+        void erase (iterator x) {
+            _erase (x.node);
+            destroy_node ((link_type)x.node);
+        }
 
 };
 
@@ -376,7 +383,7 @@ inline void rb_tree_rotate_left (rb_tree_base* x, rb_tree_base*& root) {
 inline void rb_tree_rebalance (rb_tree_base* x, rb_tree_base*& root) {
     x->color = _red;
     while (x != root && x->parent->color == _red ) {
-        if (x == x->parent->left) {
+        if (x->parent == x->parent->parent->left) {
             rb_tree_base* y = x->parent->parent->right;
             if (y && y->color == _red) {
                 x->parent->color = _black;
@@ -400,7 +407,7 @@ inline void rb_tree_rebalance (rb_tree_base* x, rb_tree_base*& root) {
                 x->parent->parent->color = _red;
                 x = x->parent->parent;
             } else {
-                if (x == x->parent->right) {
+                if (x == x->parent->left) {
                     x = x->parent;
                     rb_tree_rotate_right (x, root);
                 }
@@ -413,7 +420,7 @@ inline void rb_tree_rebalance (rb_tree_base* x, rb_tree_base*& root) {
     root->color = _black;
 }
 
-inline void rb_erase_reblance (rb_tree_base* x, rb_tree_base*& root) {
+inline void rb_erase_rebalance (rb_tree_base* x, rb_tree_base*& root) {
     while (x != root && x->color == _black) {
         if (x == x->parent->left ) {
             rb_tree_base* w = x->parent->right;
@@ -446,7 +453,7 @@ inline void rb_erase_reblance (rb_tree_base* x, rb_tree_base*& root) {
                 w->color = _black;
                 x->parent->color = _red;
                 rb_tree_rotate_right (x->parent, root);
-                w = x->parent->right;
+                w = x->parent->left;
             }
             if ( (w->left == 0 || w->left->color == _black) 
                     && (w->right == 0 || w->right->color == _black)) {
@@ -477,7 +484,7 @@ inline void rb_tree_transplant (rb_tree_base* x, rb_tree_base* y, rb_tree_base*&
         x->parent->left = y;
     else 
         x->parent->right = y;
-    y->parent = x->parent;
+    if (y != 0) y->parent = x->parent;
 }
 
 
