@@ -370,6 +370,7 @@ inline void rb_tree_rotate_left (rb_tree_base* x, rb_tree_base*& root) {
     x->right = y->left;
     if (y->left)
         y->left->parent = x;
+    y->parent = x->parent;
     if (x == root) 
         root = y;
     else if (x == x->parent->left)
